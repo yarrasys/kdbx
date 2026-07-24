@@ -3,10 +3,11 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/yarrasys/kdbx/internal/kdbxerr"
 )
 
 // Version is injected at build time via -ldflags "-X github.com/yarrasys/kdbx/cmd.Version=…".
@@ -53,12 +54,17 @@ func register(root *cobra.Command) {
 	}
 }
 
-// Execute runs the CLI and returns the process exit code.
+// Execute runs the CLI and returns the process exit code (spec C6).
 func Execute() int {
 	root := RootCmd()
-	if err := root.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "kdbx: %v\n", err)
-		return 1
+	err := root.Execute()
+	if err == nil {
+		return 0
 	}
-	return 0
+	op := "kdbx"
+	if c, _, ferr := root.Find(os.Args[1:]); ferr == nil && c != nil {
+		op = c.Name()
+	}
+	kdbxerr.Report(os.Stderr, op, err)
+	return kdbxerr.CodeOf(err)
 }
