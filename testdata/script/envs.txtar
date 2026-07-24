@@ -1,0 +1,44 @@
+# envs lists configured environments, marks the active one, and reports the source
+exec kdbx envs
+stdout '^\* dev$'
+stdout '^  prod$'
+stderr 'active: dev \(source: pointer\)'
+
+# $KDBX_ENV overrides the pointer default
+env KDBX_ENV=prod
+exec kdbx envs
+stdout '^\* prod$'
+stderr 'active: prod \(source: \$KDBX_ENV\)'
+
+# --env beats $KDBX_ENV
+exec kdbx --env dev envs
+stderr 'active: dev \(source: --env\)'
+
+# --json emits a machine-readable listing
+env KDBX_ENV=
+exec kdbx --json envs
+stdout '"envs":\[\{"name":"dev","active":true\},\{"name":"prod","active":false\}\]'
+
+# no pointer anywhere -> exit 2
+# $NOPOINTER, not a $WORK subdirectory: the archive below writes .keepassxc.json
+# at the $WORK root, which discovery would find by walking up.
+cd $NOPOINTER
+! exec kdbx envs
+stderr '^kdbx: envs failed: NotFound$'
+
+# the reason is scrubbed out of the default report (spec C7) and only surfaces
+# under $KDBX_DEBUG
+env KDBX_DEBUG=1
+! exec kdbx envs
+stderr 'no .keepassxc.json found'
+env KDBX_DEBUG=
+
+-- .keepassxc.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {},
+    "prod": {}
+  }
+}
