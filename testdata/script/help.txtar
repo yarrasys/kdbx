@@ -1,0 +1,29 @@
+# every documented operation is present
+exec kdbx --help
+stdout 'init'
+stdout 'set'
+stdout 'get'
+stdout 'list'
+stdout 'delete'
+stdout 'mv'
+stdout 'run'
+stdout 'export'
+stdout 'import'
+stdout 'check'
+stdout 'envs'
+stdout 'rekey'
+stdout 'mcp'
+stdout 'guard'
+stdout 'completion'
+
+# install-launcher is gone (spec D5) — the binary is the launcher
+! stdout 'install-launcher'
+
+# the test-only confirmation bypass stays hidden
+! stdout 'test-only'
+
+# completion scripts generate
+exec kdbx completion bash
+stdout 'complete'
+exec kdbx completion zsh
+stdout 'compdef'
