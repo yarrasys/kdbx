@@ -1,0 +1,15 @@
+# never commit vault material
+*.kdbx
+*.keyx
+*.key
+.env
+.env.*
+!.env.example
+
+# build output
+/dist/
+/kdbx
+/kdbx.exe
+
+# knowledge graph cache
+/graphify-out/
