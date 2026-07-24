@@ -1,0 +1,84 @@
+version: 2
+project_name: kdbx
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: kdbx
+    main: .
+    binary: kdbx
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X github.com/yarrasys/kdbx/cmd.Version={{.Version}}
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [README.md, LICENSE, NOTICE]
+
+checksum:
+  name_template: SHA256SUMS
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - "--output-signature=${signature}"
+      - "--output-certificate=${certificate}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+# Homebrew ships kdbx as a cask, not a formula: GoReleaser deprecated `brews` in
+# favor of `homebrew_casks`, and casks are the supported way to tap a prebuilt
+# binary. macOS notarization is a post-v1 non-goal (spec "Non-goals"), so the
+# postflight hook strips the quarantine attribute Gatekeeper would otherwise
+# apply to the downloaded binary.
+homebrew_casks:
+  - repository:
+      owner: yarrasys
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://github.com/yarrasys/kdbx
+    description: Per-project, per-env KeePassXC credentials for humans and agents
+    license: MIT
+    binaries: [kdbx]
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/kdbx"]
+          end
+
+dockers_v2:
+  - images:
+      - "ghcr.io/yarrasys/kdbx"
+    tags:
+      - "{{ .Version }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    dockerfile: Dockerfile
+
+changelog:
+  use: github
+  sort: asc
+
+# The repo has no configured git remote yet; naming the release target keeps the
+# config self-describing and lets `goreleaser check` run anywhere.
+release:
+  github:
+    owner: yarrasys
+    name: kdbx
