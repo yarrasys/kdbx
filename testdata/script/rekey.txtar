@@ -1,0 +1,36 @@
+exec kdbx init
+stdin secret.txt
+exec kdbx set api/openai --var OPENAI_API_KEY
+cp $WORK/kpxc/demo/dev.keyx $WORK/old.keyx
+
+# rekey without a TTY and without --yes refuses (exit 4)
+! exec kdbx rekey
+stderr 'needs an interactive terminal to confirm'
+stderr 'kdbx: rekey failed: NotConfirmed'
+
+# rekey rotates the keyfile and the vault still opens
+exec kdbx rekey --yes
+stderr 'rekeyed'
+exec kdbx get api/openai --reveal
+stdout '^sk-test-value$'
+
+# the old keyfile no longer opens the vault
+cp $WORK/old.keyx $WORK/kpxc/demo/stale.keyx
+env KDBX_ENV=stale
+! exec kdbx get api/openai
+stderr 'kdbx: get failed: Locked'
+
+-- .keepassxc.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {},
+    "stale": {
+      "vault": "${KEEPASSXC_DIR}/demo/dev.kdbx",
+      "keyFile": "${KEEPASSXC_DIR}/demo/stale.keyx"
+    }
+  }
+}
+-- secret.txt --
+sk-test-value
