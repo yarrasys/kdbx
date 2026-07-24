@@ -1,0 +1,63 @@
+# init creates the vault and warns about the keyfile
+exec kdbx init
+stderr 'ACTIVE ENV: dev  vault='
+stderr 'created '
+stderr 'KEYFILE: .* back this up'
+
+# init refuses to clobber an existing vault
+! exec kdbx init
+stderr 'kdbx: init failed: Preflight'
+
+# set reads the value from stdin and never echoes it
+stdin secret.txt
+exec kdbx set api/openai --var OPENAI_API_KEY
+stderr 'modified tracked file .keepassxc.json'
+! stderr 'sk-test'
+! stdout 'sk-test'
+
+# the pointer gained the mapping and kept its formatting
+grep '"OPENAI_API_KEY": "api/openai"' .keepassxc.json
+grep '^\{$' .keepassxc.json
+grep '^  "project": "demo",$' .keepassxc.json
+
+# the stored value round-trips
+exec kdbx get api/openai --reveal
+stdout '^sk-test-value$'
+
+# an invalid --var name is a preflight failure (exit 7) before any write
+stdin secret.txt
+! exec kdbx set api/other --var 'not-valid'
+stderr 'is not a valid env-var name'
+stderr 'kdbx: set failed: Preflight'
+
+# empty stdin is refused
+stdin empty.txt
+! exec kdbx set api/empty
+stderr 'no value provided'
+
+# --from-env takes the value from the environment
+env SRC_VALUE=from-env-value
+exec kdbx set api/fromenv --from-env SRC_VALUE
+exec kdbx get api/fromenv --reveal
+stdout '^from-env-value$'
+
+# a custom field is stored as a protected property
+stdin secret.txt
+exec kdbx set api/openai:ORG_ID
+exec kdbx get api/openai:ORG_ID --reveal
+stdout '^sk-test-value$'
+exec kdbx get api/openai --reveal
+stdout '^sk-test-value$'
+
+-- .keepassxc.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {}
+  }
+}
+-- secret.txt --
+sk-test-value
+-- empty.txt --
+
