@@ -4,6 +4,7 @@
 package kdbxerr
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -66,7 +67,7 @@ func CodeOf(err error) int {
 		return 0
 	}
 	var e *Error
-	if asError(err, &e) {
+	if errors.As(err, &e) {
 		return e.Code
 	}
 	return 1
@@ -78,7 +79,7 @@ func KindOf(err error) string {
 		return ""
 	}
 	var e *Error
-	if asError(err, &e) {
+	if errors.As(err, &e) {
 		return e.Kind
 	}
 	return "Runtime"
@@ -95,19 +96,4 @@ func Report(w io.Writer, op string, err error) {
 		return
 	}
 	fmt.Fprintf(w, "kdbx: %s failed: %s\n", op, KindOf(err))
-}
-
-func asError(err error, target **Error) bool {
-	for err != nil {
-		if e, ok := err.(*Error); ok {
-			*target = e
-			return true
-		}
-		u, ok := err.(interface{ Unwrap() error })
-		if !ok {
-			return false
-		}
-		err = u.Unwrap()
-	}
-	return false
 }
