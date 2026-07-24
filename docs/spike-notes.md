@@ -40,7 +40,20 @@ implementation (`skills/kdbx/kdbx.py`):
 | Found in | Divergence | Resolution |
 |----------|-----------|------------|
 | Task 5 (`ojson`) | Go emitted raw UTF-8 for new string values; Python's `json.dumps` defaults to `ensure_ascii=True` and emits `\uXXXX`. A non-ASCII entry path would produce a spurious diff in the committed pointer file whenever the two implementations alternated. | Fixed — `encodeString` now `\uXXXX`-escapes non-ASCII (surrogate pairs above the BMP). Verified byte-identical against real `json.dumps` output. |
-| Task 3 (`paths`) | Python's `expand_path` ends in `.resolve()` (follows symlinks); Go's `Expand` uses `Abs`+`Clean` (does not). Path comparisons could disagree when a pointer path traverses a symlink. | Open by design — behavior is equivalent for non-symlinked paths. A dedicated interop test (`test_symlinked_pointer_path_resolves_the_same`) asserts both implementations still reach the same vault through a symlink. |
+| Task 3 (`paths`) | Python's `expand_path` ends in `.resolve()` (follows symlinks); Go's `Expand` used `Abs`+`Clean` (did not). Worse than cosmetic: `Project()` falls back to the pointer directory's basename, so a repo reached via a symlink derived a different project name — and a different default vault path. | Fixed — `paths.Resolve` does non-strict symlink resolution (longest existing ancestor + remaining components), applied to `Expand`, `Find`, and the default-artifact branch. Verified: Go and Python report identical project name and vault path through a symlink. |
+| Task 15 (`dotenv`) | `godotenv v1.5.1` interpolates `$VAR` inside double-quoted values, and expands only from the file's own bindings — so an unknown `$VAR` collapses to the **empty string**. A secret containing `$` would be silently destroyed by `kdbx import`, not merely leaked. | Avoided — `Parse` is hand-rolled to mirror python-dotenv's grammar with `interpolate=False` semantics. Zero dependencies added. Verified equal to `dotenv_values(interpolate=False)`, and Go's `Render` is byte-identical to Python's `render_dotenv`. |
+
+## Deliberate divergences (kept, with reasons)
+
+**Unterminated quoted value in a `.env` (Task 15).** python-dotenv prints a warning and
+silently drops the binding (`A="never closed` → `{}`). Go returns `Preflight` (exit 7)
+instead.
+
+Kept deliberately. `kdbx import` exists to move secrets *into* the vault; silently dropping
+one means a credential disappears with no signal, and the user discovers it when something
+fails in production. Matching Python here would faithfully reproduce a bug. Failing loudly
+on a malformed source file is the safer contract, and `import` is a human-run operation
+where a clear error is actionable.
 
 ## Exit-code note (spec C6) — signal-killed children
 
