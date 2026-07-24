@@ -16,6 +16,7 @@ import (
 	"github.com/yarrasys/kdbx/internal/pointer"
 	"github.com/yarrasys/kdbx/internal/runner"
 	"github.com/yarrasys/kdbx/internal/secretio"
+	"github.com/yarrasys/kdbx/internal/shlex"
 	"github.com/yarrasys/kdbx/internal/vault"
 	"github.com/yarrasys/kdbx/internal/vaultvars"
 )
@@ -153,7 +154,13 @@ func Tools() []ToolSpec {
 				"secrets are never printed.",
 			Handler: func(_ context.Context, args map[string]any) (string, error) {
 				line := str(args, "command")
-				argv := strings.Fields(line)
+				// Shell-aware splitting, matching the Python server's
+				// shlex.split. strings.Fields would break any quoted
+				// argument — `sh -c "exit 3"` would arrive as four words.
+				argv, err := shlex.Split(line)
+				if err != nil {
+					return "", err
+				}
 				if len(argv) == 0 {
 					return "", fmt.Errorf("no command given")
 				}

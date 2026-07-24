@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -120,5 +121,49 @@ func TestCheckToolReportsResolution(t *testing.T) {
 	}
 	if strings.Contains(out, "MISSING") {
 		t.Fatalf("expected a clean check, got %q", out)
+	}
+}
+
+// kdbx_run is the one MCP tool that handles real secret values, so it gets the
+// strictest test: the child must receive the secret, and the secret must not
+// appear in what the tool hands back to the model.
+func TestRunToolInjectsTheSecretButDoesNotReturnIt(t *testing.T) {
+	project(t)
+
+	out, err := handler(t, "kdbx_run")(context.Background(), map[string]any{
+		"command": "sh -c " + strconv.Quote("test \"$API_KEY\" = sk-secret && echo INJECTED_OK || echo INJECTED_MISSING"),
+	})
+	if err != nil {
+		t.Fatalf("kdbx_run: %v", err)
+	}
+	if !strings.Contains(out, "INJECTED_OK") {
+		t.Fatalf("child did not receive the injected secret; output was:\n%s", out)
+	}
+	if strings.Contains(out, "sk-secret") {
+		t.Fatalf("kdbx_run leaked the secret value into its result:\n%s", out)
+	}
+	if !strings.Contains(out, "[exit 0]") {
+		t.Fatalf("expected the exit-code footer, got:\n%s", out)
+	}
+}
+
+func TestRunToolReportsAChildFailureExitCode(t *testing.T) {
+	project(t)
+
+	out, err := handler(t, "kdbx_run")(context.Background(), map[string]any{
+		"command": "sh -c " + strconv.Quote("exit 3"),
+	})
+	if err != nil {
+		t.Fatalf("kdbx_run should report a failing child via its footer, not an error: %v", err)
+	}
+	if !strings.Contains(out, "[exit 3]") {
+		t.Fatalf("expected [exit 3] footer, got:\n%s", out)
+	}
+}
+
+func TestRunToolRejectsAnEmptyCommand(t *testing.T) {
+	project(t)
+	if _, err := handler(t, "kdbx_run")(context.Background(), map[string]any{"command": "   "}); err == nil {
+		t.Fatal("expected an error for an empty command")
 	}
 }
