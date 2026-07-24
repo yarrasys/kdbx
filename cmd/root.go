@@ -4,10 +4,12 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 
+	"github.com/yarrasys/kdbx/internal/jsonout"
 	"github.com/yarrasys/kdbx/internal/kdbxerr"
 )
 
@@ -16,8 +18,9 @@ var Version = "dev"
 
 // Global flags shared by every subcommand.
 type globals struct {
-	env  string
-	json bool
+	env     string
+	json    bool
+	version bool
 }
 
 var opts globals
@@ -30,15 +33,22 @@ func RootCmd() *cobra.Command {
 		Short:         "Per-project, per-env KeePassXC credentials",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Version:       Version,
 		// Reject stray arguments so a mistyped operation fails loudly instead of
 		// silently printing help and exiting 0. RunE must be set for this to take
 		// effect: cobra returns help early for a non-runnable command, before it
 		// ever validates args.
 		Args: cobra.NoArgs,
-		RunE: func(c *cobra.Command, _ []string) error { return c.Help() },
+		RunE: func(c *cobra.Command, _ []string) error {
+			if opts.version {
+				return writeVersion(c)
+			}
+			return c.Help()
+		},
 	}
-	root.SetVersionTemplate("kdbx {{.Version}}\n")
+	// --version is handled here rather than via cobra's built-in Version field:
+	// cobra renders that from a fixed string template, which cannot vary with
+	// --json, and spec N1 requires a JSON envelope when --json is set.
+	root.Flags().BoolVar(&opts.version, "version", false, "print the version and exit")
 	root.PersistentFlags().StringVar(&opts.env, "env", "", "environment name (overrides $KDBX_ENV and the pointer default)")
 	root.PersistentFlags().BoolVar(&opts.json, "json", false, "machine-readable output (read operations only)")
 	register(root)
@@ -74,4 +84,13 @@ func Execute() int {
 	}
 	kdbxerr.Report(os.Stderr, op, err)
 	return kdbxerr.CodeOf(err)
+}
+
+// writeVersion prints the version, honoring --json (spec N1).
+func writeVersion(c *cobra.Command) error {
+	if opts.json {
+		return jsonout.Write(c.OutOrStdout(), map[string]any{"version": Version})
+	}
+	fmt.Fprintf(c.OutOrStdout(), "kdbx %s\n", Version)
+	return nil
 }
