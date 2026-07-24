@@ -179,7 +179,13 @@ func Move(vaultPath, keyPath, src, dst string) error {
 	})
 }
 
-// Rekey mints newKeyPath, re-encrypts the vault under it, and removes the old key.
+// Rekey mints newKeyPath and re-encrypts the vault under it.
+//
+// It deliberately does NOT remove oldKeyPath — the caller installs the new key
+// by renaming it over the live keyfile. Deleting the old key here would make
+// every failure path unrecoverable, since the keyfile is the vault's sole
+// credential. On error the NEW key is removed instead, leaving the vault
+// readable by the old one.
 func Rekey(vaultPath, oldKeyPath, newKeyPath string) error {
 	if err := keyfile.Mint(newKeyPath); err != nil {
 		return err
