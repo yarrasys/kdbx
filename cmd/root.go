@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -60,6 +61,12 @@ func Execute() int {
 	err := root.Execute()
 	if err == nil {
 		return 0
+	}
+	// `run` reports a non-zero child status through the error path. The child
+	// already spoke for itself, so pass its code out without a failure line.
+	var passthrough *runExitCode
+	if errors.As(err, &passthrough) {
+		return passthrough.code
 	}
 	op := "kdbx"
 	if c, _, ferr := root.Find(os.Args[1:]); ferr == nil && c != nil {

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/rogpeppe/go-internal/testscript"
@@ -12,6 +14,22 @@ import (
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"kdbx": cmd.Execute,
+		// printenv-shim proves an injected var reached the child's environment.
+		"printenv-shim": func() int {
+			if len(os.Args) > 1 {
+				fmt.Println(os.Getenv(os.Args[1]))
+			}
+			return 0
+		},
+		// exit-shim proves the child's exit status passes straight through.
+		"exit-shim": func() int {
+			n := 0
+			if len(os.Args) > 1 {
+				n, _ = strconv.Atoi(os.Args[1])
+			}
+			fmt.Printf("exiting %d\n", n)
+			return n
+		},
 	}))
 }
 

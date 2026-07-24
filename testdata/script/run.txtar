@@ -1,0 +1,42 @@
+exec kdbx init
+stdin secret.txt
+exec kdbx set api/openai --var OPENAI_API_KEY
+
+# run injects the mapped var into the child
+exec kdbx run -- printenv-shim OPENAI_API_KEY
+stdout '^sk-test-value$'
+stderr 'ACTIVE ENV: dev'
+
+# the banner never carries the secret
+! stderr 'sk-test-value'
+
+# run passes the child's exit code straight through
+! exec kdbx run -- exit-shim 7
+stdout '^exiting 7$'
+
+# a non-zero child is the child's business — kdbx adds no failure line
+! stderr 'kdbx: run failed'
+
+# run with no command is exit 2
+! exec kdbx run
+stderr 'kdbx: run failed: NotFound'
+
+# an unresolvable mapping is drift (exit 5)
+exec kdbx delete api/openai --purge --yes
+! exec kdbx run -- printenv-shim OPENAI_API_KEY
+stderr 'kdbx: run failed: Drift'
+
+# --allow-missing lets the child run without the var
+exec kdbx run --allow-missing -- printenv-shim OPENAI_API_KEY
+stdout '^$'
+
+-- .keepassxc.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {}
+  }
+}
+-- secret.txt --
+sk-test-value
