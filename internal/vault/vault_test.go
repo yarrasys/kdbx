@@ -42,7 +42,6 @@ func TestOpenWithMissingKeyfileIsLocked(t *testing.T) {
 }
 
 func TestSetGetReservedAndCustomFields(t *testing.T) {
-	t.Skip("write path lands in Task 12")
 	v, k := newVault(t)
 	if err := SetField(v, k, []string{"api"}, "openai", "password", "sk-test"); err != nil {
 		t.Fatalf("SetField password: %v", err)
@@ -78,7 +77,6 @@ func TestGetFieldMissingEntryIsNotFound(t *testing.T) {
 }
 
 func TestGetFieldMissingFieldIsNotFound(t *testing.T) {
-	t.Skip("write path lands in Task 12")
 	v, k := newVault(t)
 	if err := SetField(v, k, []string{"api"}, "openai", "password", "sk-test"); err != nil {
 		t.Fatal(err)
@@ -91,7 +89,6 @@ func TestGetFieldMissingFieldIsNotFound(t *testing.T) {
 }
 
 func TestSetFieldRefusesEmptyValue(t *testing.T) {
-	t.Skip("write path lands in Task 12")
 	v, k := newVault(t)
 	if err := SetField(v, k, []string{"api"}, "x", "password", "   "); err == nil {
 		t.Fatal("SetField must refuse a whitespace-only value")
@@ -99,7 +96,6 @@ func TestSetFieldRefusesEmptyValue(t *testing.T) {
 }
 
 func TestListEntriesIsSortedAndExcludesTrash(t *testing.T) {
-	t.Skip("write path lands in Task 12")
 	v, k := newVault(t)
 	for _, p := range [][]string{
 		{"api", "zeta"},
@@ -123,5 +119,33 @@ func TestListEntriesIsSortedAndExcludesTrash(t *testing.T) {
 	want := []string{"api/alpha", "db/primary"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ListEntries = %v, want %v", got, want)
+	}
+}
+
+func TestConcurrentSetsDoNotCorruptTheVault(t *testing.T) {
+	v, k := newVault(t)
+	done := make(chan error, 4)
+	for i := 0; i < 4; i++ {
+		go func(n int) {
+			done <- SetField(v, k, []string{"api"}, "entry"+string(rune('a'+n)), "password", "value")
+		}(i)
+	}
+	failures := 0
+	for i := 0; i < 4; i++ {
+		if err := <-done; err != nil {
+			failures++ // a losing writer may legitimately see VaultChanged (exit 6)
+		}
+	}
+	h, err := Open(v, k)
+	if err != nil {
+		t.Fatalf("vault unreadable after concurrent writes: %v", err)
+	}
+	defer h.Close()
+	entries, err := h.ListEntries()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries)+failures != 4 {
+		t.Fatalf("entries=%d failures=%d, want them to sum to 4", len(entries), failures)
 	}
 }

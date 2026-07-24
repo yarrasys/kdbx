@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/tobischo/gokeepasslib/v3"
-	w "github.com/tobischo/gokeepasslib/v3/wrappers"
 	"github.com/yarrasys/kdbx/internal/kdbxerr"
 	"github.com/yarrasys/kdbx/internal/keyfile"
 	"github.com/yarrasys/kdbx/internal/secretio"
@@ -274,24 +273,3 @@ func writeDB(db *gokeepasslib.Database, vaultPath string) error {
 	// Re-unlock so the in-memory handle stays usable after a write.
 	return db.UnlockProtectedEntries()
 }
-
-// SetField sets one field of one entry, creating the entry when it is absent.
-// The vault write path (locking + read-modify-write) lands in Task 12; the
-// signature is fixed here so the read path and its tests compile against the
-// final shape.
-func SetField(vaultPath, keyPath string, groupPath []string, title, field, value string) error {
-	// Referenced only to pin the signature; value is a secret and is never echoed.
-	_, _, _, _, _, _ = vaultPath, keyPath, groupPath, title, field, value
-	return kdbxerr.Runtime("SetField: the vault write path is not implemented yet")
-}
-
-// Trash moves one entry into the vault's Recycle Bin. The vault write path
-// lands in Task 12; the signature is fixed here so the read path and its tests
-// compile against the final shape.
-func Trash(vaultPath, keyPath string, groupPath []string, title string) error {
-	_, _, _, _ = vaultPath, keyPath, groupPath, title
-	return kdbxerr.Runtime("Trash: the vault write path is not implemented yet")
-}
-
-// unused keeps the wrappers import meaningful before Task 12 lands writes.
-var _ = w.NewBoolWrapper

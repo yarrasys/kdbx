@@ -3,6 +3,7 @@ module github.com/yarrasys/kdbx
 go 1.25.0
 
 require (
+	github.com/gofrs/flock v0.13.0
 	github.com/rogpeppe/go-internal v1.15.0
 	github.com/spf13/cobra v1.10.2
 	github.com/tobischo/gokeepasslib/v3 v3.6.2
