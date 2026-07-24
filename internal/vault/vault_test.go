@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+
+	"github.com/yarrasys/kdbx/internal/kdbxerr"
 )
 
 func TestCreateProducesAnOpenableKdbx4Vault(t *testing.T) {
@@ -147,5 +149,77 @@ func TestConcurrentSetsDoNotCorruptTheVault(t *testing.T) {
 	}
 	if len(entries)+failures != 4 {
 		t.Fatalf("entries=%d failures=%d, want them to sum to 4", len(entries), failures)
+	}
+}
+
+// A rename inside one group is the case that catches Move aliasing the source
+// entry's Values: the retitled copy must be the only entry left, and it must
+// still decrypt to the original secret.
+func TestMoveWithinAGroupRenamesExactlyOneEntry(t *testing.T) {
+	v, k := newVault(t)
+	if err := SetField(v, k, []string{"db"}, "primary", "password", "sk-test-value"); err != nil {
+		t.Fatalf("SetField: %v", err)
+	}
+	if err := Move(v, k, "db/primary", "db/main"); err != nil {
+		t.Fatalf("Move: %v", err)
+	}
+	h, err := Open(v, k)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer h.Close()
+	got, err := h.ListEntries()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"db/main"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("ListEntries = %v, want %v", got, want)
+	}
+	val, err := h.GetField([]string{"db"}, "main", "password")
+	if err != nil {
+		t.Fatalf("GetField after move: %v", err)
+	}
+	if val != "sk-test-value" {
+		t.Fatalf("value after move = %q, want %q", val, "sk-test-value")
+	}
+}
+
+func TestMoveAcrossGroupsKeepsTheValue(t *testing.T) {
+	v, k := newVault(t)
+	if err := SetField(v, k, []string{"api"}, "openai", "password", "sk-one"); err != nil {
+		t.Fatalf("SetField: %v", err)
+	}
+	if err := Move(v, k, "api/openai", "vendors/openai"); err != nil {
+		t.Fatalf("Move: %v", err)
+	}
+	h, err := Open(v, k)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer h.Close()
+	got, err := h.ListEntries()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"vendors/openai"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("ListEntries = %v, want %v", got, want)
+	}
+	val, err := h.GetField([]string{"vendors"}, "openai", "password")
+	if err != nil {
+		t.Fatalf("GetField after move: %v", err)
+	}
+	if val != "sk-one" {
+		t.Fatalf("value after move = %q, want %q", val, "sk-one")
+	}
+}
+
+func TestMoveOfAMissingEntryIsNotFound(t *testing.T) {
+	v, k := newVault(t)
+	err := Move(v, k, "api/nope", "api/other")
+	if err == nil {
+		t.Fatal("moving a missing entry must fail")
+	}
+	if kdbxerr.CodeOf(err) != 2 {
+		t.Fatalf("exit code = %d, want 2 (NotFound)", kdbxerr.CodeOf(err))
 	}
 }

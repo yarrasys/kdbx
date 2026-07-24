@@ -163,7 +163,14 @@ func Move(vaultPath, keyPath, src, dst string) error {
 		if e == nil {
 			return kdbxerr.NotFound("entry not found: %s", joinPath(sg, st))
 		}
+		// Copy the value slice, not just the entry struct: `moved := *e` shares its
+		// Values backing array with the entry still in the tree, so retitling the
+		// copy renames the original too. removeEntry (which matches on title) then
+		// finds nothing, leaving the vault with two entries under the destination
+		// title whose shared protected values get locked twice on write — they
+		// decrypt to nothing, so the moved secret reads back as unset.
 		moved := *e
+		moved.Values = append([]gokeepasslib.ValueData(nil), e.Values...)
 		setValue(&moved, "Title", dt, false)
 		removeEntry(owner, st)
 		target := h.ensureGroup(dg)
