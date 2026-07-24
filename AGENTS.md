@@ -14,6 +14,38 @@ ever printing them. It is a port of the Python `kdbx` skill in
 [`yarrasys/extensions`](https://github.com/yarrasys/extensions/tree/main/skills/kdbx), which
 is now the frozen reference implementation.
 
+## Current status — read this first
+
+**The port is complete and green; nothing has been published.** As of 2026-07-25:
+
+- 19 packages, full suite green under `-race`, cross-compiles to darwin/linux/windows ×
+  amd64/arm64. 8 CLI-contract scenarios pass. Interop suite: 16 passed, 1 expected `xfail`
+  (a case where the *Python* side is wrong — it leaks `FileNotFoundError` and exits 1 where
+  the contract says 3).
+- 15 commands: `init set get list delete mv run export import check envs rekey guard mcp
+  completion`. `install-launcher` was removed — the binary is its own launcher.
+- Compatibility with the Python reference is verified, not assumed: key-file bytes match by
+  SHA-256, pointer JSON matches `json.dumps` byte-for-byte, dotenv export is byte-identical,
+  and both `pykeepass` and `keepassxc-cli` read Go-written vaults.
+
+**Not done — each needs a human decision, so do not do these unprompted:**
+
+1. **No git remote.** This repo is local-only (`git remote -v` is empty) and the GitHub repo
+   `yarrasys/kdbx` does not exist. Creating and pushing it is outward-facing: get explicit
+   sign-off, including public vs. private, before `gh repo create` or any push.
+2. **No release tagged.** The curl installer, Homebrew cask and `ghcr.io` image all resolve
+   against GitHub Releases, so none work until the repo exists and a `v*` tag is pushed. The
+   docs deliberately carry a pre-release caveat — do not claim a release exists.
+3. **The consuming change lives in the other repo.** `yarrasys/extensions` has two unpushed
+   branches: `design/kdbx-go-standalone` (spec + implementation plan) and
+   `feat/kdbx-binary-integration` (skill and plugin switched to the binary, Python frozen).
+   `extensions/main` is protected, so that one needs a PR.
+4. **`golangci-lint` has never actually run** — it is not installed on the dev machine, so CI
+   is the first place it executes. Expect the lint job to surface something on the first push.
+
+A dev build is installed at `~/.local/bin/kdbx` (`0.1.0-dev`), replacing the old Python
+`install-launcher` shim, which has been deleted.
+
 ## Golden rules
 
 **1. The engine boundary is absolute.** Only `internal/vault/` may import
