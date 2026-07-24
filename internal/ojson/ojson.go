@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"unicode/utf16"
+	"unicode/utf8"
 )
 
 // Object is a JSON object with stable key order. Values are either *Object
@@ -110,7 +112,14 @@ func (o *Object) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// encodeString marshals s as a JSON string without HTML escaping.
+// encodeString marshals s as a JSON string without HTML escaping, escaping
+// non-ASCII runes as \uXXXX.
+//
+// The \uXXXX escaping matches Python's json.dumps default (ensure_ascii=True),
+// which wrote every .keepassxc.json in existence before this implementation.
+// Without it, an entry path containing non-ASCII would be rewritten as raw
+// UTF-8 and show up as a spurious diff in a committed file whenever the two
+// implementations took turns.
 func encodeString(s string) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -118,7 +127,39 @@ func encodeString(s string) ([]byte, error) {
 	if err := enc.Encode(s); err != nil {
 		return nil, err
 	}
-	return bytes.TrimRight(buf.Bytes(), "\n"), nil
+	return asciiEscape(bytes.TrimRight(buf.Bytes(), "\n")), nil
+}
+
+// asciiEscape rewrites every non-ASCII rune in an already-encoded JSON string
+// as a \uXXXX escape, using surrogate pairs above the BMP.
+func asciiEscape(encoded []byte) []byte {
+	if isASCII(encoded) {
+		return encoded
+	}
+	var out bytes.Buffer
+	out.Grow(len(encoded))
+	for _, r := range string(encoded) {
+		if r < utf8.RuneSelf {
+			out.WriteByte(byte(r))
+			continue
+		}
+		if r > 0xFFFF {
+			r1, r2 := utf16.EncodeRune(r)
+			fmt.Fprintf(&out, `\u%04x\u%04x`, r1, r2)
+			continue
+		}
+		fmt.Fprintf(&out, `\u%04x`, r)
+	}
+	return out.Bytes()
+}
+
+func isASCII(b []byte) bool {
+	for _, c := range b {
+		if c >= utf8.RuneSelf {
+			return false
+		}
+	}
+	return true
 }
 
 // Keys returns the keys in file order.

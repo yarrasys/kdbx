@@ -85,3 +85,46 @@ func TestObjReturnsNilForMissingOrNonObject(t *testing.T) {
 		t.Fatal("missing key must return nil")
 	}
 }
+
+func TestSetStringEscapesNonASCIILikePython(t *testing.T) {
+	// Python's json.dumps defaults to ensure_ascii=True, and every existing
+	// .keepassxc.json was written by it. Emitting raw UTF-8 here would make the
+	// two implementations produce different bytes for the same committed file.
+	o, _ := Parse([]byte(`{"vars":{}}`))
+	o.Obj("vars").SetString("K", "café/naïve")
+	got, err := o.Indent()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(got), `"caf\u00e9/na\u00efve"`) {
+		t.Fatalf("non-ASCII not escaped as Python would write it:\n%s", got)
+	}
+}
+
+func TestSetStringEscapesAstralPlaneAsSurrogatePair(t *testing.T) {
+	o, _ := Parse([]byte(`{"vars":{}}`))
+	o.Obj("vars").SetString("K", "\U0001F511") // 🔑
+	got, err := o.Indent()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(got), `"\ud83d\udd11"`) {
+		t.Fatalf("astral-plane rune not encoded as a surrogate pair:\n%s", got)
+	}
+}
+
+func TestPreEscapedValuesRoundTripByteExactly(t *testing.T) {
+	// A file already written by Python must survive untouched.
+	src := "{\n  \"vars\": {\n    \"K\": \"caf\\u00e9\"\n  }\n}\n"
+	o, err := Parse([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := o.Indent()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != src {
+		t.Fatalf("round-trip altered a pre-escaped file:\ngot  %q\nwant %q", got, src)
+	}
+}
