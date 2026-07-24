@@ -1,0 +1,68 @@
+# Seed a vault: init, then set two entries (the harness acts as the human here).
+exec kdbx init
+stderr 'ACTIVE ENV: dev'
+stderr 'KEYFILE:'
+
+stdin secret1.txt
+exec kdbx set api/openai --var OPENAI_API_KEY
+stdin secret2.txt
+exec kdbx set api/anthropic --var ANTHROPIC_API_KEY
+
+# list prints sorted paths and never a value
+exec kdbx list
+stdout '^api/anthropic$'
+stdout '^api/openai$'
+! stdout 'sk-'
+
+# list filters by group prefix
+exec kdbx list api/open
+stdout '^api/openai$'
+! stdout 'anthropic'
+
+# get is masked by default
+exec kdbx get api/openai
+stdout '^\(set, hidden\)$'
+! stdout 'sk-'
+
+# --reveal prints the value and warns
+exec kdbx get api/openai --reveal
+stdout '^sk-test-one$'
+stderr 'WARNING: value printed to stdout'
+
+# --json masks and never carries a value
+exec kdbx --json get api/openai
+stdout '"set":true'
+! stdout 'sk-'
+
+# --json with --reveal is a preflight error (exit 7)
+! exec kdbx --json get api/openai --reveal
+stderr 'kdbx: get failed: Preflight'
+
+# a missing entry is exit 2
+! exec kdbx get api/nope
+stderr 'kdbx: get failed: NotFound'
+
+# check passes when every mapping resolves
+exec kdbx check
+! stdout 'MISSING'
+
+# check reports drift and exits 5
+stdin secret1.txt
+exec kdbx set api/orphan --var ORPHAN_KEY
+exec kdbx delete api/orphan --purge --yes
+! exec kdbx check
+stdout 'MISSING ORPHAN_KEY -> api/orphan'
+stderr 'kdbx: check failed: Drift'
+
+-- .keepassxc.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {}
+  }
+}
+-- secret1.txt --
+sk-test-one
+-- secret2.txt --
+sk-test-two
