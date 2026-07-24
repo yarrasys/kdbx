@@ -35,6 +35,13 @@ implementation (`skills/kdbx/kdbx.py`):
    group whose UUID also happens to be zero.
 3. **`isRootGroup` stays as a name check** (`"Root"`) — confirmed against real vaults.
 
+## Parity findings from the build (resolved)
+
+| Found in | Divergence | Resolution |
+|----------|-----------|------------|
+| Task 5 (`ojson`) | Go emitted raw UTF-8 for new string values; Python's `json.dumps` defaults to `ensure_ascii=True` and emits `\uXXXX`. A non-ASCII entry path would produce a spurious diff in the committed pointer file whenever the two implementations alternated. | Fixed — `encodeString` now `\uXXXX`-escapes non-ASCII (surrogate pairs above the BMP). Verified byte-identical against real `json.dumps` output. |
+| Task 3 (`paths`) | Python's `expand_path` ends in `.resolve()` (follows symlinks); Go's `Expand` uses `Abs`+`Clean` (does not). Path comparisons could disagree when a pointer path traverses a symlink. | Open by design — behavior is equivalent for non-symlinked paths. A dedicated interop test (`test_symlinked_pointer_path_resolves_the_same`) asserts both implementations still reach the same vault through a symlink. |
+
 ## Exit-code note (spec C6)
 
 `runner.Run` returns the child's raw exit code, matching Python's `subprocess.returncode`.
