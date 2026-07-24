@@ -35,7 +35,11 @@ func TestOnlyVaultImportsTheEngine(t *testing.T) {
 		}
 		rel, _ := filepath.Rel(root, p)
 		rel = filepath.ToSlash(rel)
-		for _, imp := range append(pkg.Imports, pkg.TestImports...) {
+		// XTestImports matters as much as the other two: an external test package
+		// (package foo_test) importing the engine would otherwise slip through and
+		// quietly establish a second place that knows the engine's types.
+		all := append(append(append([]string{}, pkg.Imports...), pkg.TestImports...), pkg.XTestImports...)
+		for _, imp := range all {
 			if !strings.HasPrefix(imp, engine) {
 				continue
 			}
