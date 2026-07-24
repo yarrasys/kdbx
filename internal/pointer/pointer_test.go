@@ -3,8 +3,11 @@ package pointer
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/yarrasys/kdbx/internal/paths"
 )
 
 func writePointer(t *testing.T, dir, body string) string {
@@ -90,10 +93,10 @@ func TestResolveEnvExpandsTokensAndReadsVars(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveEnv: %v", err)
 	}
-	if want := filepath.Join(base, "ideas", "dev.kdbx"); ep.Vault != want {
+	if want := filepath.Join(paths.Resolve(base), "ideas", "dev.kdbx"); ep.Vault != want {
 		t.Fatalf("vault %q, want %q", ep.Vault, want)
 	}
-	if want := filepath.Join(base, "ideas", "dev.keyx"); ep.KeyFile != want {
+	if want := filepath.Join(paths.Resolve(base), "ideas", "dev.keyx"); ep.KeyFile != want {
 		t.Fatalf("keyfile %q, want %q", ep.KeyFile, want)
 	}
 	if ep.Vars["OPENAI_API_KEY"] != "api/openai:password" {
@@ -111,7 +114,7 @@ func TestResolveEnvDefaultsPathsFromProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveEnv: %v", err)
 	}
-	if want := filepath.Join(base, "ideas", "dev.kdbx"); ep.Vault != want {
+	if want := filepath.Join(paths.Resolve(base), "ideas", "dev.kdbx"); ep.Vault != want {
 		t.Fatalf("vault %q, want %q", ep.Vault, want)
 	}
 }
@@ -126,7 +129,7 @@ func TestResolveEnvProjectFallsBackToPointerDirName(t *testing.T) {
 	p, _ := Load(writePointer(t, dir, `{"defaultEnv":"dev","envs":{"dev":{}}}`))
 
 	ep, _ := p.ResolveEnv("dev")
-	if want := filepath.Join(base, "myrepo", "dev.kdbx"); ep.Vault != want {
+	if want := filepath.Join(paths.Resolve(base), "myrepo", "dev.kdbx"); ep.Vault != want {
 		t.Fatalf("vault %q, want %q", ep.Vault, want)
 	}
 }
@@ -220,5 +223,45 @@ func TestEnvNamesInFileOrder(t *testing.T) {
 	got := p.EnvNames()
 	if len(got) != 2 || got[0] != "dev" || got[1] != "prod" {
 		t.Fatalf("EnvNames = %v, want [dev prod]", got)
+	}
+}
+
+func TestFindResolvesSymlinksSoProjectNameMatchesPython(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation needs elevation on Windows")
+	}
+	root := t.TempDir()
+	real := filepath.Join(root, "myrepo")
+	if err := os.MkdirAll(real, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writePointer(t, real, `{"defaultEnv":"dev","envs":{"dev":{}}}`)
+
+	link := filepath.Join(root, "aliased-name")
+	if err := os.Symlink(real, link); err != nil {
+		t.Fatal(err)
+	}
+
+	viaReal, err := Find(real)
+	if err != nil {
+		t.Fatal(err)
+	}
+	viaLink, err := Find(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if viaReal != viaLink {
+		t.Fatalf("Find via symlink returned %q, want %q", viaLink, viaReal)
+	}
+
+	// The project name (and therefore the default vault path) must not depend
+	// on which name the user used to reach the repo.
+	pReal, _ := Load(viaReal)
+	pLink, _ := Load(viaLink)
+	if pReal.Project() != pLink.Project() {
+		t.Fatalf("project name differs by access path: %q vs %q", pReal.Project(), pLink.Project())
+	}
+	if got := pLink.Project(); got != "myrepo" {
+		t.Fatalf("project = %q, want the real directory name %q", got, "myrepo")
 	}
 }

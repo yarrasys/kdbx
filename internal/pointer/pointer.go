@@ -31,11 +31,14 @@ type EnvPaths struct {
 }
 
 // Find walks up from startDir looking for the pointer file.
+//
+// startDir is symlink-resolved first, matching Python's find_pointer. This is
+// load-bearing, not cosmetic: Project() falls back to the pointer directory's
+// basename, so reaching the same repo through a symlink would otherwise yield a
+// different project name here than in Python — and therefore a different
+// default vault path, making a user's secrets look like they had vanished.
 func Find(startDir string) (string, error) {
-	dir, err := filepath.Abs(startDir)
-	if err != nil {
-		return "", kdbxerr.Wrap(err, "Runtime", 1, "resolving %s", startDir)
-	}
+	dir := paths.Resolve(startDir)
 	for {
 		cand := filepath.Join(dir, Name)
 		if st, err := os.Stat(cand); err == nil && !st.IsDir() {
@@ -136,9 +139,12 @@ func (p *Pointer) ResolveEnv(env string) (EnvPaths, error) {
 	return out, nil
 }
 
+// resolveArtifact picks the configured path or the per-project default. Both
+// branches are symlink-resolved, matching Python, which applies .resolve() to
+// the default branch as well as to expand_path().
 func resolveArtifact(configured, fallback string) (string, error) {
 	if configured == "" {
-		return filepath.Clean(fallback), nil
+		return paths.Resolve(fallback), nil
 	}
 	return paths.Expand(configured)
 }

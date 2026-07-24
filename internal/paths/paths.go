@@ -43,11 +43,45 @@ func Expand(raw string) (string, error) {
 		}
 		s = filepath.Join(home, strings.TrimPrefix(strings.TrimPrefix(s, "~"), string(os.PathSeparator)))
 	}
-	abs, err := filepath.Abs(s)
+	return Resolve(s), nil
+}
+
+// Resolve returns p absolute with symlinks resolved, matching Python's
+// pathlib.Path.resolve() in its default non-strict mode.
+//
+// Matching matters for compatibility, not tidiness. The Python implementation
+// resolves both the pointer's location and every artifact path, so a repo or
+// vault reached through a symlink must produce the SAME string here — otherwise
+// the two implementations derive different project names (and therefore
+// different default vault paths) from the same directory, and take out
+// different lock files for the same vault.
+//
+// filepath.EvalSymlinks fails outright on a path that does not exist, which a
+// vault does not until `init` creates it. So resolve the longest existing
+// ancestor and re-append the remaining components unchanged, exactly as
+// non-strict resolve() does.
+func Resolve(p string) string {
+	abs, err := filepath.Abs(p)
 	if err != nil {
-		return "", err
+		return filepath.Clean(p)
 	}
-	return filepath.Clean(abs), nil
+	abs = filepath.Clean(abs)
+
+	cur, rest := abs, ""
+	for {
+		if resolved, err := filepath.EvalSymlinks(cur); err == nil {
+			if rest == "" {
+				return resolved
+			}
+			return filepath.Join(resolved, rest)
+		}
+		parent := filepath.Dir(cur)
+		if parent == cur {
+			return abs // nothing along this path exists; nothing to resolve
+		}
+		rest = filepath.Join(filepath.Base(cur), rest)
+		cur = parent
+	}
 }
 
 // UnderSyncRoot returns the name of a cloud-sync root present in p, or "".

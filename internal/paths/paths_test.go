@@ -1,6 +1,7 @@
 package paths
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -60,5 +61,45 @@ func TestUnderSyncRootDetectsKnownRoots(t *testing.T) {
 		if got := UnderSyncRoot(in); got != want {
 			t.Fatalf("UnderSyncRoot(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestResolveFollowsSymlinksLikePythonResolve(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation needs elevation on Windows")
+	}
+	root := t.TempDir()
+	real := filepath.Join(root, "real")
+	if err := os.MkdirAll(real, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(root, "link")
+	if err := os.Symlink(real, link); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := Resolve(link), Resolve(real); got != want {
+		t.Fatalf("Resolve(symlink) = %q, want %q", got, want)
+	}
+}
+
+func TestResolveHandlesPathsThatDoNotExistYet(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation needs elevation on Windows")
+	}
+	root := t.TempDir()
+	real := filepath.Join(root, "real")
+	if err := os.MkdirAll(real, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(root, "link")
+	if err := os.Symlink(real, link); err != nil {
+		t.Fatal(err)
+	}
+	// A vault does not exist until `init` creates it, so Resolve must still
+	// resolve the existing ancestors rather than failing outright.
+	got := Resolve(filepath.Join(link, "proj", "dev.kdbx"))
+	want := filepath.Join(Resolve(real), "proj", "dev.kdbx")
+	if got != want {
+		t.Fatalf("Resolve(nonexistent under symlink) = %q, want %q", got, want)
 	}
 }
