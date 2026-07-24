@@ -38,6 +38,10 @@ stdout '"set":true'
 ! exec kdbx --json get api/openai --reveal
 stderr 'kdbx: get failed: Preflight'
 
+# --reveal and --clip conflict is also a preflight error, not a generic failure
+! exec kdbx get api/openai --reveal --clip
+stderr 'kdbx: get failed: Preflight'
+
 # a missing entry is exit 2
 ! exec kdbx get api/nope
 stderr 'kdbx: get failed: NotFound'

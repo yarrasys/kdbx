@@ -24,13 +24,19 @@ func init() {
 		}
 		cmd.Flags().BoolVar(&reveal, "reveal", false, "print the value to stdout")
 		cmd.Flags().BoolVar(&clip, "clip", false, "copy the value to the clipboard (auto-clears)")
-		cmd.MarkFlagsMutuallyExclusive("reveal", "clip")
+		// Deliberately not MarkFlagsMutuallyExclusive: cobra surfaces that as a
+		// generic error, which Execute maps to exit 1. A conflicting flag pair is
+		// bad input caught before the vault is ever touched — Preflight/exit 7
+		// (spec C6) — so runGet checks it explicitly, like the --json rule.
 		root.AddCommand(cmd)
 		root.AddCommand(clearClipCmd())
 	})
 }
 
 func runGet(c *cobra.Command, path string, reveal, clip bool) error {
+	if reveal && clip {
+		return kdbxerr.Preflight("--reveal and --clip cannot be combined")
+	}
 	if opts.json && reveal {
 		return kdbxerr.Preflight("--json cannot be combined with --reveal")
 	}
