@@ -42,8 +42,28 @@ implementation (`skills/kdbx/kdbx.py`):
 | Task 5 (`ojson`) | Go emitted raw UTF-8 for new string values; Python's `json.dumps` defaults to `ensure_ascii=True` and emits `\uXXXX`. A non-ASCII entry path would produce a spurious diff in the committed pointer file whenever the two implementations alternated. | Fixed — `encodeString` now `\uXXXX`-escapes non-ASCII (surrogate pairs above the BMP). Verified byte-identical against real `json.dumps` output. |
 | Task 3 (`paths`) | Python's `expand_path` ends in `.resolve()` (follows symlinks); Go's `Expand` uses `Abs`+`Clean` (does not). Path comparisons could disagree when a pointer path traverses a symlink. | Open by design — behavior is equivalent for non-symlinked paths. A dedicated interop test (`test_symlinked_pointer_path_resolves_the_same`) asserts both implementations still reach the same vault through a symlink. |
 
-## Exit-code note (spec C6)
+## Exit-code note (spec C6) — signal-killed children
 
-`runner.Run` returns the child's raw exit code, matching Python's `subprocess.returncode`.
-A child killed by a signal reports `-1` via `exec.ExitError.ExitCode()`; v1 passes that
-through rather than converting to `128+signal`, matching the reference implementation.
+`runner.Run` returns the child's raw exit code, matching Python's `subprocess.returncode`
+for the normal case. Verified during Task 16: a child killed by a signal makes
+`exec.ExitError.ExitCode()` return **`-1`** (Go collapses every signal death to -1), and
+`Run` passes that through with a nil error.
+
+⚠️ **Accepted divergence.** Python's `returncode` is `-N` for signal N (e.g. `-9` for
+SIGKILL), so the two implementations differ in this one case after the process exits:
+
+| Child killed by | Python `kdbx run` | Go `kdbx run` |
+|-----------------|-------------------|---------------|
+| SIGKILL (9)     | `sys.exit(-9)` → **247** | `os.Exit(-1)` → **255** |
+| SIGTERM (15)    | `sys.exit(-15)` → **241** | `os.Exit(-1)` → **255** |
+
+Left as-is deliberately. Neither implementation matches the shell's `128+N` convention
+(137/143), so no script written against shell semantics works on either; reproducing
+Python's `-N` exactly would need platform-specific `WaitStatus` handling for a value no
+caller can portably use. Normal (non-signal) exit codes pass through identically, which is
+the case that matters. Note that a child which *traps* a signal and exits normally reports
+its own code correctly — confirmed at 7 in the Task 16 forwarding test.
+
+Signal forwarding itself is verified, not assumed: SIGINT/SIGTERM sent to kdbx reach the
+child, proven with a control run (same child, no forwarding goroutine, signal not
+delivered) that rules out process-group spillover.
