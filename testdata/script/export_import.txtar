@@ -1,0 +1,46 @@
+exec kdbx init
+
+# import reads a .env, stores each value, and registers mappings
+exec kdbx import legacy.env
+stderr 'imported 2 vars'
+stderr 'rotate anything ever committed'
+grep '"API_KEY": "imported/API_KEY:password"' .keepassxc.json
+grep '"DB_URL": "imported/DB_URL:password"' .keepassxc.json
+
+exec kdbx list
+stdout '^imported/API_KEY$'
+stdout '^imported/DB_URL$'
+
+# export round-trips the imported values, in pointer order
+exec kdbx export
+stdout '^API_KEY="sk-imported"$'
+stdout '^DB_URL="postgres://localhost/db"$'
+
+# --out writes a file and warns about gitignore
+exec kdbx export --out .env.generated
+stderr 'ensure .env.generated is gitignored'
+stderr 'wrote 2 vars'
+grep '^API_KEY="sk-imported"$' .env.generated
+
+# a drifting mapping fails export with exit 5
+exec kdbx delete imported/API_KEY --purge --yes
+! exec kdbx export
+stderr 'kdbx: export failed: Drift'
+
+# --allow-missing exports what remains
+exec kdbx export --allow-missing
+stdout '^DB_URL='
+! stdout 'API_KEY='
+
+-- .keepassxc.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {}
+  }
+}
+-- legacy.env --
+# a legacy dotenv file
+API_KEY="sk-imported"
+DB_URL="postgres://localhost/db"
