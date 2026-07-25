@@ -1,0 +1,47 @@
+name: Bug report
+description: Something in kdbx behaves incorrectly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug.
+
+        ⚠️ **Never paste a real secret, vault path, or key file.** Redact them —
+        a description of the *shape* of the problem is enough. If this is a security
+        vulnerability, do not open an issue; file a private advisory (see SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: kdbx version
+      description: Output of `kdbx --version`.
+      placeholder: kdbx 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS
+        - Linux
+        - Windows
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The commands you ran (secrets redacted) and what you expected to happen.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: >-
+        Include the exit code and the single `kdbx: <op> failed: <Kind>` stderr line.
+        `KDBX_DEBUG=1` adds detail — redact any secret before pasting it.
+    validations:
+      required: true

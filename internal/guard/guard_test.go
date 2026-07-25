@@ -62,7 +62,6 @@ func TestDecideAllowsKdbxAndKeepassxcCliTouchingVaultFiles(t *testing.T) {
 	for _, cmd := range []string{
 		"kdbx run -- printenv",
 		"keepassxc-cli ls --no-password -k dev.keyx dev.kdbx",
-		"uv run kdbx.py list",
 	} {
 		if got := Decide(cmd); got != "" {
 			t.Errorf("Decide(%q) denied an allowed invoker: %s", cmd, got)

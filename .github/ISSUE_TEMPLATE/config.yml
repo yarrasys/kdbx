@@ -1,0 +1,7 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/yarrasys/kdbx/security/advisories/new
+    about: >-
+      Report privately via GitHub Security Advisories — never in a public issue.
+      Public disclosure before a fix puts every user's vault at risk. See SECURITY.md.

@@ -19,14 +19,12 @@ is now the frozen reference implementation.
 **The port is complete and green; nothing has been published.** As of 2026-07-25:
 
 - 19 packages, full suite green under `-race`, cross-compiles to darwin/linux/windows ×
-  amd64/arm64. 8 CLI-contract scenarios pass. Interop suite: 16 passed, 1 expected `xfail`
-  (a case where the *Python* side is wrong — it leaks `FileNotFoundError` and exits 1 where
-  the contract says 3).
+  amd64/arm64. 8 CLI-contract scenarios pass.
 - 15 commands: `init set get list delete mv run export import check envs rekey guard mcp
   completion`. `install-launcher` was removed — the binary is its own launcher.
-- Compatibility with the Python reference is verified, not assumed: key-file bytes match by
-  SHA-256, pointer JSON matches `json.dumps` byte-for-byte, dotenv export is byte-identical,
-  and both `pykeepass` and `keepassxc-cli` read Go-written vaults.
+- Vaults are standard KDBX4 (Argon2, key-file-only), so `keepassxc-cli` and the KeePassXC
+  desktop app read Go-written vaults directly. The Python↔Go parity harness that verified the
+  original port has been retired now that the Python reference is no longer a consumer.
 
 **Not done — each needs a human decision, so do not do these unprompted:**
 
@@ -40,8 +38,9 @@ is now the frozen reference implementation.
    branches: `design/kdbx-go-standalone` (spec + implementation plan) and
    `feat/kdbx-binary-integration` (skill and plugin switched to the binary, Python frozen).
    `extensions/main` is protected, so that one needs a PR.
-4. **`golangci-lint` has never actually run** — it is not installed on the dev machine, so CI
-   is the first place it executes. Expect the lint job to surface something on the first push.
+
+`golangci-lint` v2 now runs clean locally (`errcheck govet ineffassign staticcheck unused
+misspell revive`) as well as in CI, so the lint job is no longer an unknown on first push.
 
 A dev build is installed at `~/.local/bin/kdbx` (`0.1.0-dev`), replacing the old Python
 `install-launcher` shim, which has been deleted.
@@ -88,10 +87,9 @@ is clean, `golangci-lint run` is clean. CI gates all three on Linux, macOS and W
 sections **C** (compatibility) and **N** (new surfaces) define pointer discovery, the entry
 path grammar, the vault and key-file formats, the twelve operations' observable behavior,
 the exit-code table, error scrubbing, permissions, and locking. **Changing observable
-behavior means updating the spec in the same change** — the README, the `.txtar` contracts
-and the interop suite all descend from it. Where the frozen Python implementation and the
-spec disagree, the spec wins; the known cases are recorded in
-[`docs/spike-notes.md`](docs/spike-notes.md) and the README's compatibility table.
+behavior means updating the spec in the same change** — the README and the `.txtar` contracts
+descend from it. The known deliberate divergences from the original Python behavior are
+recorded in [`docs/spike-notes.md`](docs/spike-notes.md) and the README's compatibility table.
 Undocumented divergence is a bug, documented divergence is a decision.
 
 ## Repository map
@@ -117,7 +115,6 @@ Undocumented divergence is a bug, documented divergence is a decision.
 | `internal/guard/` | `PreToolUse` decision function plus its stdin/stdout shell |
 | `internal/mcpserver/` | stdio MCP server, five read-only tools |
 | `testdata/script/*.txtar` | testscript CLI-contract tests |
-| `interop/` | pytest round-trip and parity harness against the Python reference (dev/CI only, never shipped) |
 | `docs/spike-notes.md` | verified engine facts and every deliberate divergence, with reasons |
 | `.goreleaser.yaml`, `install.sh`, `Dockerfile`, `.github/workflows/` | release engineering |
 
@@ -131,8 +128,6 @@ gofmt -l .                   # must print nothing
 golangci-lint run
 
 go test . -run TestScripts                          # CLI contract tests only (testdata/script)
-go build -o kdbx . && \
-  uv run --with pytest --with pykeepass python -m pytest interop -v   # interop suite
 ```
 
 Release pipeline, validated without publishing anything:

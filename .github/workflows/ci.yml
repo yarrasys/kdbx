@@ -31,23 +31,3 @@ jobs:
         with:
           go-version: "1.25.x"
       - uses: golangci/golangci-lint-action@v6
-
-  interop:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with: {go-version: "1.25.x"}
-      - uses: astral-sh/setup-uv@v5
-      - uses: actions/checkout@v4
-        with:
-          repository: yarrasys/extensions
-          path: extensions
-      - run: go build -o kdbx .
-      - name: install keepassxc-cli
-        run: sudo apt-get update && sudo apt-get install -y keepassxc
-      - name: interop suite
-        env:
-          KDBX_BIN: ${{ github.workspace }}/kdbx
-          KDBX_PY_REPO: ${{ github.workspace }}/extensions
-        run: uv run --with pytest --with pykeepass python -m pytest interop -v

@@ -240,8 +240,8 @@ $ echo $?
 
 It blocks two things: agent-issued human-only operations, and non-kdbx programs reaching
 for `*.kdbx` / `*.keyx` files or the KeePassXC config directory (so `cat ~/.config/keepassxc/…`
-is denied too). It recognizes `kdbx`, `kdbx.py`, `keepassxc-cli`, `keepassxc`, and
-`uv run …` invocations as legitimate.
+is denied too). It recognizes `kdbx`, `keepassxc-cli` and `keepassxc` invocations as
+legitimate.
 
 `kdbx mcp` applies the same contract to MCP clients: five tools, all read-only. There is no
 write tool, deliberately.
@@ -304,39 +304,39 @@ both, along with the skill documentation an agent loads to learn the contract.
 
 Vulnerabilities: see [SECURITY.md](SECURITY.md). Please do not open a public issue.
 
-## Compatibility with the Python implementation
+## Origin
 
 kdbx began as a Python skill in
-[`yarrasys/extensions`](https://github.com/yarrasys/extensions/tree/main/skills/kdbx). That
-implementation is now frozen as the reference; this binary is the canonical kdbx. **Vaults,
-key files and `.keepassxc.json` pointers are interchangeable between the two, in both
-directions, with no migration step.** Verified round-trip (see
-[`docs/spike-notes.md`](docs/spike-notes.md) and the `interop/` suite): vaults created by
-either side open in the other, protected custom properties survive both directions,
-`pykeepass` and `keepassxc-cli` both read Go-written vaults, and a `kdbx rekey` on one side
-leaves the vault readable by the other.
+[`yarrasys/extensions`](https://github.com/yarrasys/extensions/tree/main/skills/kdbx). This
+binary is now the canonical kdbx and the Python skill is retired. Vaults are standard KDBX4
+(Argon2, key-file-only), so any vault kdbx writes opens directly in `keepassxc-cli` and the
+KeePassXC desktop app; `.keepassxc.json` pointers and KeePass XML v2 key files are the
+ordinary formats those tools already use.
 
-Four behavioral differences are deliberate and documented rather than accidental:
+A few behaviors were chosen deliberately when porting from the original Python skill:
 
-| Area | Python | Go | Why |
-|------|--------|-----|-----|
-| `install-launcher` | present | **removed** | the binary is its own launcher; there is nothing left to install |
-| Failure to open a vault | sometimes exit 1 | **exit 3** | 3 is the documented contract for a locked/credential failure; Python's 1 was the bug |
-| Malformed `.env` on `import` (unterminated quote) | warns and silently drops the binding | **exit 7** | silently losing a credential during an import is worse than failing loudly |
-| Child killed by a signal under `run` | `-N` → e.g. 247 for SIGKILL | `-1` → 255 | Go collapses every signal death to -1; neither matches the shell's `128+N`, so no portable caller depends on either. Normal exit codes pass through identically |
+| Area | Behavior | Why |
+|------|----------|-----|
+| `install-launcher` | **removed** | the binary is its own launcher; there is nothing left to install |
+| Failure to open a vault | **exit 3** | 3 is the documented contract for a locked/credential failure (the Python skill sometimes returned 1) |
+| Malformed `.env` on `import` (unterminated quote) | **exit 7** | silently losing a credential during an import is worse than failing loudly |
+| Child killed by a signal under `run` | `-1` → 255 | Go collapses every signal death to -1; this doesn't match the shell's `128+N`, so no portable caller depends on it. Normal exit codes pass through identically |
 
-⚠️ **Locking does not interoperate.** Vault writes take an advisory lock on `<vault>.lock`;
-Python's `filelock` and Go's `gofrs/flock` do not reliably block each other. Don't run a
-write from both implementations against the same vault at the same time. kdbx is a
-single-user tool and this window closes when the Python path is archived, but it is real
-until then.
+## Bugs & feedback
+
+Found a bug or have a feature idea? Please [open an
+issue](https://github.com/yarrasys/kdbx/issues/new/choose). Include `kdbx --version`, your
+platform, and redacted reproduction steps — **never paste a real secret, vault path, or key
+file**; a description of the shape of the problem is enough.
+
+Security vulnerabilities are the one exception: report them privately through GitHub Security
+Advisories (see [SECURITY.md](SECURITY.md)), **not** as a public issue.
 
 ## Contributing
 
 `AGENTS.md` (symlinked as `CLAUDE.md`) carries the repository's rules — the engine boundary,
 the secret-hygiene invariants, and the test discipline. Read it before opening a PR. CI runs
-the suite on Linux, macOS and Windows plus `go vet`, `gofmt` and `golangci-lint`; the
-interop suite is a release blocker.
+the suite on Linux, macOS and Windows plus `go vet`, `gofmt` and `golangci-lint`.
 
 ## License
 

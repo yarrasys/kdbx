@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest a change or a new capability
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that kdbx makes hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: compat
+    attributes:
+      label: Compatibility
+      options:
+        - label: >-
+            I understand kdbx keeps a compatibility contract with the frozen Python
+            reference, and that observable-behavior changes must stay within it or
+            be recorded as a deliberate divergence (see AGENTS.md and the design spec).

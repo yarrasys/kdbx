@@ -18,7 +18,7 @@ import (
 // allowedInvokers may touch vault material: kdbx itself and the KeePassXC CLI,
 // neither of which prints a secret by default.
 var allowedInvokers = map[string]bool{
-	"kdbx": true, "kdbx.py": true, "keepassxc-cli": true, "keepassxc": true,
+	"kdbx": true, "keepassxc-cli": true, "keepassxc": true,
 }
 
 // blockedOps mutate the vault or expose a value — a human role.
@@ -56,9 +56,7 @@ func Decide(command string) string {
 			continue
 		}
 		prog := programOf(tokens)
-		allowed := allowedInvokers[prog] ||
-			((prog == "uv" || prog == "uvx") && strings.Contains(strings.ToLower(seg), "kdbx"))
-		if allowed {
+		if allowedInvokers[prog] {
 			continue
 		}
 		what := hit
@@ -128,19 +126,18 @@ func kdbxOp(tokens []string) (string, bool) {
 	}
 	prog := programOf(tokens)
 	for i, tok := range tokens {
-		base := path.Base(strings.ReplaceAll(tok, `\`, "/"))
-		if base != "kdbx" && base != "kdbx.py" {
+		if path.Base(strings.ReplaceAll(tok, `\`, "/")) != "kdbx" {
 			continue
 		}
-		if base == prog || prog == "uv" || prog == "uvx" {
-			for _, next := range tokens[i+1:] {
-				if !strings.HasPrefix(next, "-") {
-					return next, true
-				}
-			}
-			return "", true
+		if prog != "kdbx" {
+			return "", false
 		}
-		return "", false
+		for _, next := range tokens[i+1:] {
+			if !strings.HasPrefix(next, "-") {
+				return next, true
+			}
+		}
+		return "", true
 	}
 	return "", false
 }

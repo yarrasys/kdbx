@@ -4,8 +4,7 @@ All notable changes to kdbx are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and kdbx uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Versions are cut from a `v*` tag; v1.0.0 will mean the compatibility contract is frozen and
-the interop suite is green. Nothing has been released yet.
+Versions are cut from a `v*` tag. Nothing has been released yet.
 
 ## [Unreleased]
 
@@ -51,12 +50,9 @@ which becomes the frozen reference implementation.
 ### Compatibility
 
 - Vaults (KDBX4 + Argon2, key-file-only), KeePass XML v2 key files, and `.keepassxc.json`
-  pointer files are **fully interchangeable** with the Python implementation in both
-  directions, with no migration step. Verified against `pykeepass` and `keepassxc-cli` —
-  see `docs/spike-notes.md` and the `interop/` suite.
-- ⚠️ Advisory locking does **not** interoperate: Python's `filelock` and Go's
-  `gofrs/flock` do not reliably block one another. Do not run concurrent writes from both
-  implementations against the same vault.
+  pointer files are the standard formats KeePassXC uses, so `keepassxc-cli` and the KeePassXC
+  desktop app read Go-written vaults directly. Any vault, key file or pointer created by the
+  original Python skill is read without a migration step.
 
 ### Breaking changes vs. the Python implementation
 

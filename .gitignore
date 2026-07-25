@@ -11,5 +11,16 @@
 /kdbx
 /kdbx.exe
 
+# Go test & coverage artifacts
+*.test
+*.out
+coverage.txt
+
 # knowledge graph cache
 /graphify-out/
+
+# OS & editor cruft
+.DS_Store
+*.swp
+.idea/
+.vscode/

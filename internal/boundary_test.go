@@ -26,7 +26,7 @@ func TestOnlyVaultImportsTheEngine(t *testing.T) {
 			return nil
 		}
 		name := info.Name()
-		if name == ".git" || name == "dist" || name == "interop" || name == "testdata" {
+		if name == ".git" || name == "dist" || name == "testdata" {
 			return filepath.SkipDir
 		}
 		pkg, perr := build.ImportDir(p, 0)
