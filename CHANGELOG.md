@@ -4,13 +4,15 @@ All notable changes to kdbx are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and kdbx uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Versions are cut from a `v*` tag. Nothing has been released yet.
+Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
-The first version of kdbx as a standalone Go binary. It reimplements the Python `kdbx` skill
+## [0.1.0] - 2026-07-25
+
+The first release of kdbx as a standalone Go binary. It reimplements the Python `kdbx` skill
 from [`yarrasys/extensions`](https://github.com/yarrasys/extensions/tree/main/skills/kdbx),
-which becomes the frozen reference implementation.
+which is now the frozen reference implementation.
 
 ### Added
 
@@ -42,10 +44,10 @@ which becomes the frozen reference implementation.
   under OneDrive, Dropbox, iCloud Drive or similar. The Python implementation had the
   detection but never wired it in.
 - **Release engineering** — GoReleaser pipeline producing archives for
-  darwin/linux/windows × amd64/arm64, `SHA256SUMS` with a cosign keyless signature, a
-  Homebrew cask in `yarrasys/homebrew-tap`, a `FROM scratch` image on
-  `ghcr.io/yarrasys/kdbx`, and a checksum-verifying `install.sh` for
-  `curl … | sh` installation.
+  darwin/linux/windows × amd64/arm64, `SHA256SUMS` with a cosign keyless signature, and a
+  checksum-verifying `install.sh` for `curl … | sh` installation. A Homebrew cask and a
+  `FROM scratch` `ghcr.io/yarrasys/kdbx` image are configured but not published in this
+  release (the tap repo, its token, and multi-arch container CI are not yet set up).
 
 ### Compatibility
 
@@ -61,8 +63,8 @@ which becomes the frozen reference implementation.
   invoked `kdbx install-launcher` should simply install the binary instead.
 - **Failing to open a vault now exits 3, not 1.** Exit 3 (locked / key file missing /
   credential failure) has always been the documented contract; the Python implementation
-  surfaced some open failures as the generic exit 1. Go implements the documented code, and
-  the parity harness asserts the documented contract rather than the Python behavior.
+  surfaced some open failures as the generic exit 1. Go implements the documented code.
   Scripts that branched on exit 1 for a missing or unreadable key file must branch on 3.
 
-[Unreleased]: https://github.com/yarrasys/kdbx/commits/main
+[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.1.0...main
+[0.1.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.0
