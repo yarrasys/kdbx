@@ -61,18 +61,18 @@ homebrew_casks:
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/kdbx"]
           end
 
-# Container image (ghcr.io/yarrasys/kdbx) is still deferred: the multi-arch build
-# needs docker/setup-qemu + setup-buildx in release.yml. Re-enable when ready.
-# dockers_v2:
-#   - images:
-#       - "ghcr.io/yarrasys/kdbx"
-#     tags:
-#       - "{{ .Version }}"
-#       - latest
-#     platforms:
-#       - linux/amd64
-#       - linux/arm64
-#     dockerfile: Dockerfile
+# FROM scratch image on ghcr.io. The multi-arch (linux/arm64) build needs
+# docker/setup-qemu + setup-buildx in release.yml, which are wired up there.
+dockers_v2:
+  - images:
+      - "ghcr.io/yarrasys/kdbx"
+    tags:
+      - "{{ .Version }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    dockerfile: Dockerfile
 
 changelog:
   use: github
