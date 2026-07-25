@@ -70,7 +70,14 @@ func Open(vaultPath, keyPath string) (*Handle, error) {
 	if err := keyfile.Validate(keyPath); err != nil {
 		return nil, err
 	}
-	creds, err := gokeepasslib.NewKeyCredentials(keyPath)
+	// Read the keyfile ourselves rather than gokeepasslib.NewKeyCredentials:
+	// its ParseKeyFile opens the file but never closes it, and that leaked
+	// handle blocks TempDir cleanup (and any delete) on Windows.
+	keyData, err := os.ReadFile(keyPath)
+	if err != nil {
+		return nil, kdbxerr.Wrap(err, "Locked", 3, "reading keyfile %s", keyPath)
+	}
+	creds, err := gokeepasslib.NewKeyDataCredentials(keyData)
 	if err != nil {
 		return nil, kdbxerr.Wrap(err, "Locked", 3, "building credentials from %s", keyPath)
 	}

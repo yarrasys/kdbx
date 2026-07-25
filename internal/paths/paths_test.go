@@ -32,7 +32,10 @@ func TestExpandSubstitutesKeepassxcDirToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expand: %v", err)
 	}
-	if want := filepath.Join("/base", "proj", "dev.kdbx"); got != want {
+	// Expand absolutizes via Resolve; on Windows a drive-relative "/base"
+	// gains a drive letter, so compute want the same way rather than assuming
+	// filepath.Join yields an absolute path.
+	if want := Resolve(filepath.Join("/base", "proj", "dev.kdbx")); got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
