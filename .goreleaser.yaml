@@ -40,30 +40,29 @@ signs:
     artifacts: checksum
     output: true
 
-# --- Deferred, not published in v0.1.0 — re-enable once the infra exists ---
-# Homebrew cask: needs the `yarrasys/homebrew-tap` repo to exist and a
-# HOMEBREW_TAP_TOKEN secret (a PAT — a repo's GITHUB_TOKEN cannot push to
-# another repo). Container: needs docker/setup-qemu + setup-buildx in
-# release.yml for the multi-arch (linux/arm64) build.
-#
-# Homebrew ships kdbx as a cask, not a formula, and the postflight hook strips
-# the quarantine attribute Gatekeeper would apply to the downloaded binary.
-# homebrew_casks:
-#   - repository:
-#       owner: yarrasys
-#       name: homebrew-tap
-#       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-#     homepage: https://github.com/yarrasys/kdbx
-#     description: Per-project, per-env KeePassXC credentials for humans and agents
-#     license: MIT
-#     binaries: [kdbx]
-#     hooks:
-#       post:
-#         install: |
-#           if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
-#             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/kdbx"]
-#           end
-#
+# Homebrew ships kdbx as a cask, not a formula: GoReleaser deprecated `brews` in
+# favor of `homebrew_casks`, and casks are the supported way to tap a prebuilt
+# binary. macOS notarization is a post-v1 non-goal (spec "Non-goals"), so the
+# postflight hook strips the quarantine attribute Gatekeeper would otherwise
+# apply to the downloaded binary.
+homebrew_casks:
+  - repository:
+      owner: yarrasys
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://github.com/yarrasys/kdbx
+    description: Per-project, per-env KeePassXC credentials for humans and agents
+    license: MIT
+    binaries: [kdbx]
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/kdbx"]
+          end
+
+# Container image (ghcr.io/yarrasys/kdbx) is still deferred: the multi-arch build
+# needs docker/setup-qemu + setup-buildx in release.yml. Re-enable when ready.
 # dockers_v2:
 #   - images:
 #       - "ghcr.io/yarrasys/kdbx"
