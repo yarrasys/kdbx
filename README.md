@@ -10,9 +10,9 @@ variable mappings and injects them into a child process' environment. It replace
 files as the source of truth; the vault stays outside the repo, so there is nothing secret
 to accidentally commit.
 
-> **v0.1.0.** The curl installer, `go install`, and the release archives (with `SHA256SUMS`
-> and cosign signatures) are live. The Homebrew cask and the `ghcr.io` container image are
-> **not published yet** — use the curl installer, `go install`, or build from source.
+> **v0.1.1.** The curl installer, `go install`, Homebrew, and the release archives (with
+> `SHA256SUMS` and cosign signatures) are live. The `ghcr.io` container image is **not
+> published yet** — for it, build from source or use one of the other methods.
 
 ## Install
 
@@ -23,8 +23,8 @@ curl -LsSf https://raw.githubusercontent.com/yarrasys/kdbx/main/install.sh | sh
 ```
 
 ```sh
+brew install yarrasys/tap/kdbx                    # Homebrew
 go install github.com/yarrasys/kdbx@latest        # from source, needs Go 1.25+
-brew install yarrasys/tap/kdbx                    # Homebrew — not published yet (see status above)
 docker run --rm ghcr.io/yarrasys/kdbx:latest --version   # container — not published yet
 ```
 

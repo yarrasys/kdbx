@@ -8,6 +8,15 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-25
+
+### Added
+
+- **Homebrew cask** — `brew install yarrasys/tap/kdbx`, published to
+  [`yarrasys/homebrew-tap`](https://github.com/yarrasys/homebrew-tap) by the release
+  pipeline. (The `ghcr.io/yarrasys/kdbx` container image remains deferred until the release
+  workflow gains multi-arch build support.)
+
 ## [0.1.0] - 2026-07-25
 
 The first release of kdbx as a standalone Go binary. It reimplements the Python `kdbx` skill
@@ -66,5 +75,6 @@ which is now the frozen reference implementation.
   surfaced some open failures as the generic exit 1. Go implements the documented code.
   Scripts that branched on exit 1 for a missing or unreadable key file must branch on 3.
 
-[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.1.0...main
+[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.1.1...main
+[0.1.1]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.1
 [0.1.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.0
