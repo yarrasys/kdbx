@@ -16,7 +16,8 @@ is now the frozen reference implementation.
 
 ## Current status — read this first
 
-**The port is complete and green; nothing has been published.** As of 2026-07-25:
+**The port is complete; the repo is public at <https://github.com/yarrasys/kdbx> with green
+CI on Linux, macOS and Windows.** As of 2026-07-25:
 
 - 19 packages, full suite green under `-race`, cross-compiles to darwin/linux/windows ×
   amd64/arm64. 8 CLI-contract scenarios pass.
@@ -25,22 +26,18 @@ is now the frozen reference implementation.
 - Vaults are standard KDBX4 (Argon2, key-file-only), so `keepassxc-cli` and the KeePassXC
   desktop app read Go-written vaults directly. The Python↔Go parity harness that verified the
   original port has been retired now that the Python reference is no longer a consumer.
+- `golangci-lint` v2 runs clean locally and in CI. `main` is protected: the `lint` and
+  three-OS `test` checks are required (admins may still push directly).
 
 **Not done — each needs a human decision, so do not do these unprompted:**
 
-1. **No git remote.** This repo is local-only (`git remote -v` is empty) and the GitHub repo
-   `yarrasys/kdbx` does not exist. Creating and pushing it is outward-facing: get explicit
-   sign-off, including public vs. private, before `gh repo create` or any push.
-2. **No release tagged.** The curl installer, Homebrew cask and `ghcr.io` image all resolve
-   against GitHub Releases, so none work until the repo exists and a `v*` tag is pushed. The
-   docs deliberately carry a pre-release caveat — do not claim a release exists.
-3. **The consuming change lives in the other repo.** `yarrasys/extensions` has two unpushed
+1. **No release tagged.** The curl installer, Homebrew cask and `ghcr.io` image all resolve
+   against GitHub Releases, so none work until a `v*` tag is pushed; until then, build from
+   source. The docs deliberately carry a pre-release caveat — do not claim a release exists.
+2. **The consuming change lives in the other repo.** `yarrasys/extensions` has two unpushed
    branches: `design/kdbx-go-standalone` (spec + implementation plan) and
    `feat/kdbx-binary-integration` (skill and plugin switched to the binary, Python frozen).
    `extensions/main` is protected, so that one needs a PR.
-
-`golangci-lint` v2 now runs clean locally (`errcheck govet ineffassign staticcheck unused
-misspell revive`) as well as in CI, so the lint job is no longer an unknown on first push.
 
 A dev build is installed at `~/.local/bin/kdbx` (`0.1.0-dev`), replacing the old Python
 `install-launcher` shim, which has been deleted.
