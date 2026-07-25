@@ -8,6 +8,14 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-07-25
+
+### Added
+
+- **Container image** — a multi-arch (`linux/amd64`, `linux/arm64`) `FROM scratch` image at
+  `ghcr.io/yarrasys/kdbx`, built and pushed by the release pipeline:
+  `docker run --rm ghcr.io/yarrasys/kdbx:latest --version`.
+
 ## [0.1.1] - 2026-07-25
 
 ### Added
@@ -75,6 +83,7 @@ which is now the frozen reference implementation.
   surfaced some open failures as the generic exit 1. Go implements the documented code.
   Scripts that branched on exit 1 for a missing or unreadable key file must branch on 3.
 
-[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.1.1...main
+[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.1.2...main
+[0.1.2]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.2
 [0.1.1]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.1
 [0.1.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.0
