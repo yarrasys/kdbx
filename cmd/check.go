@@ -35,7 +35,7 @@ func runCheck(c *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 
 	missing := []missingVar{}
 	for _, name := range ctx.VarOrder {

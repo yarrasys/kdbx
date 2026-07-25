@@ -231,18 +231,18 @@ func TestFindResolvesSymlinksSoProjectNameMatchesPython(t *testing.T) {
 		t.Skip("symlink creation needs elevation on Windows")
 	}
 	root := t.TempDir()
-	real := filepath.Join(root, "myrepo")
-	if err := os.MkdirAll(real, 0o755); err != nil {
+	realDir := filepath.Join(root, "myrepo")
+	if err := os.MkdirAll(realDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writePointer(t, real, `{"defaultEnv":"dev","envs":{"dev":{}}}`)
+	writePointer(t, realDir, `{"defaultEnv":"dev","envs":{"dev":{}}}`)
 
 	link := filepath.Join(root, "aliased-name")
-	if err := os.Symlink(real, link); err != nil {
+	if err := os.Symlink(realDir, link); err != nil {
 		t.Fatal(err)
 	}
 
-	viaReal, err := Find(real)
+	viaReal, err := Find(realDir)
 	if err != nil {
 		t.Fatal(err)
 	}

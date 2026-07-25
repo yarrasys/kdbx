@@ -52,7 +52,7 @@ func runGet(c *cobra.Command, path string, reveal, clip bool) error {
 	if err != nil {
 		return err
 	}
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 
 	val, err := h.GetField(group, title, field)
 	if err != nil {

@@ -27,7 +27,7 @@ func mutate(vaultPath, keyPath string, fn func(h *Handle) error) error {
 		if err != nil {
 			return err
 		}
-		defer h.Close()
+		defer func() { _ = h.Close() }()
 		if err := locking.VerifyUnchanged(vaultPath, captured); err != nil {
 			return err
 		}
@@ -195,7 +195,7 @@ func Rekey(vaultPath, oldKeyPath, newKeyPath string) error {
 		if err != nil {
 			return err
 		}
-		defer h.Close()
+		defer func() { _ = h.Close() }()
 		creds, err := gokeepasslib.NewKeyCredentials(newKeyPath)
 		if err != nil {
 			return kdbxerr.Wrap(err, "Locked", 3, "building credentials from the new keyfile")

@@ -19,7 +19,7 @@ func TestCreateProducesAnOpenableKdbx4Vault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 	if runtime.GOOS != "windows" {
 		st, _ := os.Stat(v)
 		if perm := st.Mode().Perm(); perm != 0o600 {
@@ -56,7 +56,7 @@ func TestSetGetReservedAndCustomFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 
 	if got, err := h.GetField([]string{"api"}, "openai", "password"); err != nil || got != "sk-test" {
 		t.Fatalf("password = %q, err %v", got, err)
@@ -72,7 +72,7 @@ func TestSetGetReservedAndCustomFields(t *testing.T) {
 func TestGetFieldMissingEntryIsNotFound(t *testing.T) {
 	v, k := newVault(t)
 	h, _ := Open(v, k)
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 	if _, err := h.GetField([]string{"api"}, "nope", "password"); err == nil {
 		t.Fatal("expected NotFound for a missing entry")
 	}
@@ -84,7 +84,7 @@ func TestGetFieldMissingFieldIsNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 	h, _ := Open(v, k)
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 	if _, err := h.GetField([]string{"api"}, "openai", "ABSENT"); err == nil {
 		t.Fatal("expected NotFound for an absent custom field")
 	}
@@ -113,7 +113,7 @@ func TestListEntriesIsSortedAndExcludesTrash(t *testing.T) {
 	}
 
 	h, _ := Open(v, k)
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 	got, err := h.ListEntries()
 	if err != nil {
 		t.Fatal(err)
@@ -142,7 +142,7 @@ func TestConcurrentSetsDoNotCorruptTheVault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("vault unreadable after concurrent writes: %v", err)
 	}
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 	entries, err := h.ListEntries()
 	if err != nil {
 		t.Fatal(err)
@@ -167,7 +167,7 @@ func TestMoveWithinAGroupRenamesExactlyOneEntry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 	got, err := h.ListEntries()
 	if err != nil {
 		t.Fatal(err)
@@ -196,7 +196,7 @@ func TestMoveAcrossGroupsKeepsTheValue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 	got, err := h.ListEntries()
 	if err != nil {
 		t.Fatal(err)

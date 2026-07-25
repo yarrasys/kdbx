@@ -56,7 +56,7 @@ func Tools() []ToolSpec {
 				if err != nil {
 					return "", err
 				}
-				defer h.Close()
+				defer func() { _ = h.Close() }()
 				entries, err := h.ListEntries()
 				if err != nil {
 					return "", err
@@ -103,7 +103,7 @@ func Tools() []ToolSpec {
 				if err != nil {
 					return "", err
 				}
-				defer h.Close()
+				defer func() { _ = h.Close() }()
 				var b bytes.Buffer
 				missing := 0
 				for _, name := range ctx.VarOrder {
@@ -141,7 +141,7 @@ func Tools() []ToolSpec {
 				if err != nil {
 					return "", err
 				}
-				defer h.Close()
+				defer func() { _ = h.Close() }()
 				if _, err := h.GetField(group, title, field); err != nil {
 					return "", err
 				}

@@ -21,7 +21,7 @@ func TestReadSecretFromEnv(t *testing.T) {
 }
 
 func TestReadSecretFromEnvUnsetIsAnError(t *testing.T) {
-	os.Unsetenv("DEFINITELY_UNSET_VAR")
+	_ = os.Unsetenv("DEFINITELY_UNSET_VAR")
 	if _, err := ReadSecret(ReadOpts{FromEnv: "DEFINITELY_UNSET_VAR"}); err == nil {
 		t.Fatal("expected an error when --from-env names an unset variable")
 	}
@@ -67,7 +67,7 @@ func TestReadSecretPromptsAndConfirmsOnTTY(t *testing.T) {
 	calls := 0
 	got, err := ReadSecret(ReadOpts{
 		IsTTY: true,
-		PromptFn: func(prompt string) (string, error) {
+		PromptFn: func(_ string) (string, error) {
 			calls++
 			return "typed", nil
 		},

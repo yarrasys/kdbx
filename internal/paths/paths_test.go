@@ -69,15 +69,15 @@ func TestResolveFollowsSymlinksLikePythonResolve(t *testing.T) {
 		t.Skip("symlink creation needs elevation on Windows")
 	}
 	root := t.TempDir()
-	real := filepath.Join(root, "real")
-	if err := os.MkdirAll(real, 0o755); err != nil {
+	realDir := filepath.Join(root, "real")
+	if err := os.MkdirAll(realDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	link := filepath.Join(root, "link")
-	if err := os.Symlink(real, link); err != nil {
+	if err := os.Symlink(realDir, link); err != nil {
 		t.Fatal(err)
 	}
-	if got, want := Resolve(link), Resolve(real); got != want {
+	if got, want := Resolve(link), Resolve(realDir); got != want {
 		t.Fatalf("Resolve(symlink) = %q, want %q", got, want)
 	}
 }
@@ -87,18 +87,18 @@ func TestResolveHandlesPathsThatDoNotExistYet(t *testing.T) {
 		t.Skip("symlink creation needs elevation on Windows")
 	}
 	root := t.TempDir()
-	real := filepath.Join(root, "real")
-	if err := os.MkdirAll(real, 0o755); err != nil {
+	realDir := filepath.Join(root, "real")
+	if err := os.MkdirAll(realDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	link := filepath.Join(root, "link")
-	if err := os.Symlink(real, link); err != nil {
+	if err := os.Symlink(realDir, link); err != nil {
 		t.Fatal(err)
 	}
 	// A vault does not exist until `init` creates it, so Resolve must still
 	// resolve the existing ancestors rather than failing outright.
 	got := Resolve(filepath.Join(link, "proj", "dev.kdbx"))
-	want := filepath.Join(Resolve(real), "proj", "dev.kdbx")
+	want := filepath.Join(Resolve(realDir), "proj", "dev.kdbx")
 	if got != want {
 		t.Fatalf("Resolve(nonexistent under symlink) = %q, want %q", got, want)
 	}

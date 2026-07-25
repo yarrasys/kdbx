@@ -8,6 +8,14 @@ linters:
     - unused
     - misspell
     - revive
+  settings:
+    errcheck:
+      # Writes to the terminal (banners, prompts, masked output) are fire-and-forget;
+      # a failed stdout/stderr write is not actionable in a CLI. File writes are still checked.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
 formatters:
   enable:
     - gofmt

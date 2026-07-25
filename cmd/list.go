@@ -35,7 +35,7 @@ func runList(c *cobra.Command, group string) error {
 	if err != nil {
 		return err
 	}
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 
 	all, err := h.ListEntries()
 	if err != nil {

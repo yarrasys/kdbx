@@ -16,7 +16,7 @@ func Resolve(ctx *envctx.Context, allowMissing bool) (map[string]string, []strin
 	if err != nil {
 		return nil, nil, err
 	}
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 
 	vals := map[string]string{}
 	var order []string

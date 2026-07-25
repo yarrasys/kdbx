@@ -46,7 +46,7 @@ func TestSetStringAppendsWithoutReordering(t *testing.T) {
 	iZed := strings.Index(s, "ZED_KEY")
 	iAlpha := strings.Index(s, "ALPHA_KEY")
 	iNew := strings.Index(s, "NEW_KEY")
-	if !(iZed < iAlpha && iAlpha < iNew) {
+	if iZed >= iAlpha || iAlpha >= iNew {
 		t.Fatalf("order not preserved (ZED then ALPHA then NEW):\n%s", s)
 	}
 	if !strings.HasPrefix(s, "{\n  \"project\": \"ideas\",") {

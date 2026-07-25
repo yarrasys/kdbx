@@ -78,7 +78,7 @@ func Open(vaultPath, keyPath string) (*Handle, error) {
 	if err != nil {
 		return nil, kdbxerr.Wrap(err, "NotFound", 2, "opening vault %s", vaultPath)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }() // read-only; a close error here is not meaningful
 
 	db := gokeepasslib.NewDatabase()
 	db.Credentials = creds
@@ -247,7 +247,7 @@ func writeDB(db *gokeepasslib.Database, vaultPath string) error {
 		return kdbxerr.Wrap(err, "Runtime", 1, "creating %s", tmp)
 	}
 	if err := gokeepasslib.NewEncoder(f).Encode(db); err != nil {
-		f.Close()
+		_ = f.Close()
 		_ = os.Remove(tmp)
 		return kdbxerr.Wrap(err, "Runtime", 1, "encoding vault")
 	}

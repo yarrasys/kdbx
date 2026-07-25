@@ -12,25 +12,24 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"kdbx": cmd.Execute,
+	testscript.Main(m, map[string]func(){
+		"kdbx": func() { os.Exit(cmd.Execute()) },
 		// printenv-shim proves an injected var reached the child's environment.
-		"printenv-shim": func() int {
+		"printenv-shim": func() {
 			if len(os.Args) > 1 {
 				fmt.Println(os.Getenv(os.Args[1]))
 			}
-			return 0
 		},
 		// exit-shim proves the child's exit status passes straight through.
-		"exit-shim": func() int {
+		"exit-shim": func() {
 			n := 0
 			if len(os.Args) > 1 {
 				n, _ = strconv.Atoi(os.Args[1])
 			}
 			fmt.Printf("exiting %d\n", n)
-			return n
+			os.Exit(n)
 		},
-	}))
+	})
 }
 
 func TestScripts(t *testing.T) {

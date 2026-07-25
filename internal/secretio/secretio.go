@@ -118,7 +118,7 @@ func AtomicWriteSecret(path string, data []byte) error {
 		return kdbxerr.Wrap(err, "Runtime", 1, "creating %s", path)
 	}
 	if _, err := f.Write(data); err != nil {
-		f.Close()
+		_ = f.Close()
 		return kdbxerr.Wrap(err, "Runtime", 1, "writing %s", path)
 	}
 	if err := f.Close(); err != nil {
