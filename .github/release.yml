@@ -1,0 +1,27 @@
+# Shapes GitHub's generated release notes. GoReleaser is configured with
+# `changelog: use: github`, so it asks GitHub to build the list and these rules
+# decide the grouping. CHANGELOG.md stays the hand-written, human-facing record;
+# this is the commit-level detail underneath it.
+changelog:
+  # Dependabot is deliberately NOT excluded: this tool opens password vaults, so
+  # "which dependency moved in this release" is information a user may want, and
+  # a security bump must never be invisible. Those PRs land under Maintenance
+  # via the `dependencies` label.
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: ⚠️ Breaking changes
+      labels: ["breaking"]
+    - title: 🔐 Security
+      labels: ["security"]
+    - title: ✨ Added
+      labels: ["enhancement", "feature"]
+    - title: 🐛 Fixed
+      labels: ["bug"]
+    - title: 📝 Documentation
+      labels: ["documentation"]
+    - title: 🔧 Maintenance
+      labels: ["chore", "ci", "dependencies"]
+    - title: Other changes
+      labels: ["*"]

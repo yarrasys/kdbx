@@ -1,0 +1,31 @@
+name: govulncheck
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so a newly-published advisory against an unchanged dependency is
+    # found without waiting for someone to open a PR.
+    - cron: "23 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.25.x"
+      # govulncheck reports at two levels and only fails the build on the one
+      # that matters: a vulnerability kdbx actually *calls*. Module-level
+      # advisories against code we merely require are reported, not fatal —
+      # today that is GO-2026-5932 (golang.org/x/crypto/openpgp is unmaintained,
+      # no fix exists, and nothing here imports it). Making those fatal would
+      # mean a permanently red pipeline nobody can fix, which trains people to
+      # ignore it.
+      - name: govulncheck
+        run: |
+          go run golang.org/x/vuln/cmd/govulncheck@latest ./...
