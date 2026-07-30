@@ -16,8 +16,8 @@ is now the frozen reference implementation.
 
 ## Current status — read this first
 
-**The port is complete; the repo is public at <https://github.com/yarrasys/kdbx> with green
-CI on Linux, macOS and Windows.** As of 2026-07-25:
+**Released and consumed.** The repo is public at <https://github.com/yarrasys/kdbx>, CI is
+green on Linux, macOS and Windows, and the current release is **v0.1.2**. As of 2026-07-30:
 
 - 19 packages, full suite green under `-race`, cross-compiles to darwin/linux/windows ×
   amd64/arm64. 8 CLI-contract scenarios pass.
@@ -28,18 +28,23 @@ CI on Linux, macOS and Windows.** As of 2026-07-25:
   original port has been retired now that the Python reference is no longer a consumer.
 - `golangci-lint` v2 runs clean locally and in CI. `main` is protected: the `lint` and
   three-OS `test` checks are required (admins may still push directly).
+- **Every install route is live**: the curl installer, `go install`, `brew install
+  yarrasys/tap/kdbx` (v0.1.1) and `ghcr.io/yarrasys/kdbx` (v0.1.2). Releases ship six
+  archives plus `SHA256SUMS` and a keyless cosign signature — see [SECURITY.md](SECURITY.md).
+- **The consuming change has landed**: `yarrasys/extensions` merged the skill-and-plugin
+  switch to the binary in PR #36, freezing its Python implementation.
 
-**Not done — each needs a human decision, so do not do these unprompted:**
+**Not done — this needs a human decision, so do not do it unprompted:**
 
-1. **No release tagged.** The curl installer, Homebrew cask and `ghcr.io` image all resolve
-   against GitHub Releases, so none work until a `v*` tag is pushed; until then, build from
-   source. The docs deliberately carry a pre-release caveat — do not claim a release exists.
-2. **The consuming change lives in the other repo.** `yarrasys/extensions` has two unpushed
-   branches: `design/kdbx-go-standalone` (spec + implementation plan) and
-   `feat/kdbx-binary-integration` (skill and plugin switched to the binary, Python frozen).
-   `extensions/main` is protected, so that one needs a PR.
+1. **The normative design spec is published nowhere.** Golden rule 6 defers to
+   `docs/superpowers/specs/2026-07-24-kdbx-go-standalone-design.md` in `yarrasys/extensions`,
+   but that file exists only on a local `design/kdbx-go-standalone` branch that is on no
+   remote. Until it is pushed — or moved into this repo's `docs/`, which is arguably where a
+   contract governing this code belongs — the document this repo calls normative is
+   unreachable to everyone but its author. Treat `docs/spike-notes.md`, the README and the
+   `.txtar` contracts as the reachable statement of behavior in the meantime.
 
-A dev build is installed at `~/.local/bin/kdbx` (`0.1.0-dev`), replacing the old Python
+A dev build is installed at `~/.local/bin/kdbx` (`0.1.2-dev`), replacing the old Python
 `install-launcher` shim, which has been deleted.
 
 ## Golden rules
@@ -112,8 +117,10 @@ Undocumented divergence is a bug, documented divergence is a decision.
 | `internal/guard/` | `PreToolUse` decision function plus its stdin/stdout shell |
 | `internal/mcpserver/` | stdio MCP server, five read-only tools |
 | `testdata/script/*.txtar` | testscript CLI-contract tests |
-| `docs/spike-notes.md` | verified engine facts and every deliberate divergence, with reasons |
+| `docs/spike-notes.md` | verified engine facts, every engine upgrade, and every deliberate divergence, with reasons |
 | `.goreleaser.yaml`, `install.sh`, `Dockerfile`, `.github/workflows/` | release engineering |
+| `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` | the human on-ramp; both defer to this file for the rules |
+| `.github/dependabot.yml` | weekly dependency PRs; the KDBX engine is deliberately ungrouped |
 
 ## Build and test
 
@@ -147,6 +154,8 @@ NOTICE in the same change.
 - [ ] no secret value can reach argv, stdout, stderr, a log, JSON output, or an error string
 - [ ] observable behavior changes are reflected in the spec, the README and the `.txtar` contracts
 - [ ] a new dependency is recorded in `NOTICE` with its license
+- [ ] a `gokeepasslib` bump was re-read for format changes, re-verified against
+      `keepassxc-cli`, and recorded under "Engine upgrades" in `docs/spike-notes.md`
 - [ ] the change is described in `CHANGELOG.md` under `## [Unreleased]`
 - [ ] no vault, key file, or `.env` is in the diff
 

@@ -24,6 +24,10 @@ Versions are cut from a `v*` tag.
 
 - `TestCreateWritesKdbx40OnDisk` asserts the KDBX major/minor version in the raw header bytes
   of a freshly created vault, so an engine upgrade cannot silently change the on-disk format.
+- [CONTRIBUTING.md](CONTRIBUTING.md) and a Contributor Covenant 2.1
+  [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- `.github/dependabot.yml` — weekly Go module and GitHub Actions updates. The KDBX engine is
+  excluded from the grouped Go PR so its bumps arrive alone and get re-verified.
 
 ### Fixed
 

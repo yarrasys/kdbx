@@ -333,9 +333,12 @@ Advisories (see [SECURITY.md](SECURITY.md)), **not** as a public issue.
 
 ## Contributing
 
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the build/test loop.
 `AGENTS.md` (symlinked as `CLAUDE.md`) carries the repository's rules — the engine boundary,
 the secret-hygiene invariants, and the test discipline. Read it before opening a PR. CI runs
 the suite on Linux, macOS and Windows plus `go vet`, `gofmt` and `golangci-lint`.
+
+Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
