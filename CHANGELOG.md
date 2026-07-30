@@ -16,11 +16,25 @@ Versions are cut from a `v*` tag.
   newly deprecated `WithDatabaseKDBXVersion4()` alias. Re-verified against
   `keepassxc-cli` 2.7.12; see [docs/spike-notes.md](docs/spike-notes.md).
 - MCP SDK updated to `modelcontextprotocol/go-sdk` v1.7.0, and `golang.org/x/crypto` to v0.54.0.
+- **Container images now carry OCI metadata** (`org.opencontainers.image.source` and friends),
+  so the `ghcr.io/yarrasys/kdbx` package links back to this repository and declares its MIT
+  license. Set from `.goreleaser.yaml` so version and revision come from the release tag.
 
 ### Added
 
 - `TestCreateWritesKdbx40OnDisk` asserts the KDBX major/minor version in the raw header bytes
   of a freshly created vault, so an engine upgrade cannot silently change the on-disk format.
+
+### Fixed
+
+- CI and release workflows moved off several end-of-life action majors (`checkout` v4 → v7,
+  `setup-go` v5 → v7, `golangci-lint-action` v7 → v9, the `docker/*` actions v3 → v4,
+  `goreleaser-action` v6 → v7). CI now declares least-privilege `contents: read`.
+- **cosign pinned to the 2.x line** in the release workflow. `cosign-installer@v4` defaults to
+  cosign 3, which enables `--new-bundle-format` and *ignores* the
+  `--output-signature`/`--output-certificate` flags the `signs` block relies on — signing would
+  have appeared to succeed while publishing no `SHA256SUMS.sig`/`.pem`, the artifacts
+  SECURITY.md tells users to verify.
 
 ## [0.1.2] - 2026-07-25
 
