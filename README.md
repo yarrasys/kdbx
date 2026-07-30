@@ -281,7 +281,10 @@ MCP server — add to `.mcp.json` (Claude Code) or your client's equivalent:
 ```
 
 The [`kdbx` plugin](https://github.com/yarrasys/extensions) in `yarrasys/extensions` bundles
-both, along with the skill documentation an agent loads to learn the contract.
+both, along with the skill documentation an agent loads to learn the contract. That repository
+is **archived and read-only** as of 2026-07-30 — the plugin still works, but it receives no
+updates, issues or PRs. The snippets above are the whole integration; you do not need the
+plugin to wire `kdbx guard` or `kdbx mcp` into an agent.
 
 ## Security
 
@@ -306,8 +309,10 @@ Vulnerabilities: see [SECURITY.md](SECURITY.md). Please do not open a public iss
 ## Origin
 
 kdbx began as a Python skill in
-[`yarrasys/extensions`](https://github.com/yarrasys/extensions/tree/main/skills/kdbx). This
-binary is now the canonical kdbx and the Python skill is retired. Vaults are standard KDBX4
+[`yarrasys/extensions`](https://github.com/yarrasys/extensions/tree/main/skills/kdbx), a
+repository now archived. This binary is the canonical kdbx and the Python skill is retired; the
+design spec that governs compatibility lives here, in
+[`docs/kdbx-go-standalone-design.md`](docs/kdbx-go-standalone-design.md). Vaults are standard KDBX4
 (Argon2, key-file-only), so any vault kdbx writes opens directly in `keepassxc-cli` and the
 KeePassXC desktop app; `.keepassxc.json` pointers and KeePass XML v2 key files are the
 ordinary formats those tools already use.
