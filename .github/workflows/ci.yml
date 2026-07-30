@@ -4,6 +4,10 @@ on:
     branches: [main]
   pull_request:
 
+# Nothing in CI writes to the repo; the default token is read-only by choice.
+permissions:
+  contents: read
+
 jobs:
   test:
     strategy:
@@ -12,8 +16,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: "1.25.x"
       - run: go build ./...
@@ -26,10 +30,13 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: "1.25.x"
-      - uses: golangci/golangci-lint-action@v7
+      # golangci-lint-action v8+ requires golangci-lint >= v2.1.0. The pinned
+      # version is deliberate: it must match what contributors run locally
+      # (AGENTS.md rule 5), so bump it here and in your toolchain together.
+      - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2

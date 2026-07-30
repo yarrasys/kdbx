@@ -73,13 +73,27 @@ dockers_v2:
       - linux/amd64
       - linux/arm64
     dockerfile: Dockerfile
+    # OCI metadata lives here rather than in the Dockerfile so version and
+    # revision can be templated from the tag being released. `source` is the one
+    # that matters operationally: it links the ghcr.io package to this repo, so
+    # the package page shows the README and inherits the repo's visibility.
+    labels:
+      org.opencontainers.image.source: "https://github.com/yarrasys/kdbx"
+      org.opencontainers.image.url: "https://github.com/yarrasys/kdbx"
+      org.opencontainers.image.documentation: "https://github.com/yarrasys/kdbx#readme"
+      org.opencontainers.image.title: kdbx
+      org.opencontainers.image.description: Per-project, per-env KeePassXC credentials for humans and agents
+      org.opencontainers.image.licenses: MIT
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .Date }}"
 
 changelog:
   use: github
   sort: asc
 
-# The repo has no configured git remote yet; naming the release target keeps the
-# config self-describing and lets `goreleaser check` run anywhere.
+# Naming the release target explicitly keeps the config self-describing and lets
+# `goreleaser check` run from a clone with any remote name.
 release:
   github:
     owner: yarrasys

@@ -16,13 +16,33 @@ implementation (`skills/kdbx/kdbx.py`):
 | Question | Observed |
 |----------|----------|
 | Keyfile v2 (`<Data Hash="…">` hex) | `gokeepasslib.NewKeyCredentials(path)` parses our Python-minted `.keyx` directly. No custom parser needed for **reading** — `internal/keyfile` only needs to **mint** and validate. |
-| KDBX4 detection on read | `NewDatabase()` with no options decodes a KDBX4 file fine; `db.Header.IsKdbx4()` returns true. For **create**, pass `WithDatabaseKDBXVersion4()` explicitly. |
+| KDBX4 detection on read | `NewDatabase()` with no options decodes a KDBX4 file fine; `db.Header.IsKdbx4()` returns true. For **create**, pass the minor version explicitly — `WithDatabaseKDBXVersion40()` since the engine bump below. |
 | Group layout | Python vaults nest under a single top-level group literally named `"Root"`. Entry `api/openai` lives at `Root → api → openai`. The `isRootGroup` name check in `internal/vault` is therefore correct for real vaults — no change needed. |
 | Protected custom properties | Round-trip intact in both directions. `ValueData{Key: "ORG_ID", Value: V{Content: …, Protected: NewBoolWrapper(true)}}`; read back with `entry.GetContent("ORG_ID")`. |
 | Reserved-field key names | Python/pykeepass writes `Title`, `UserName`, `Password` (and `URL`, `Notes`). `Password` is protected; `Title`/`UserName` are not. Matches the `reserved` map in `internal/vault`. |
 | Recycle Bin | A fresh Python vault has `Meta.RecycleBinEnabled = true` but `RecycleBinUUID` is all zeros — i.e. **enabled but not yet created**. `recycleBinName()` must treat a zero UUID as "no bin", and `ensureRecycleBin()` must create the group and set the UUID on first use. |
 | Entry construction | `gokeepasslib.NewEntry()` needs `e.Times = gokeepasslib.NewTimeData()` set explicitly; omitting it risks nil-pointer marshal issues. |
 | Lock/unlock discipline | `UnlockProtectedEntries()` after every decode, `LockProtectedEntries()` before every encode, and re-unlock after a write if the in-memory handle stays in use. |
+
+## Engine upgrades since the spike
+
+The spike above was run against `v3.6.2`. Each later engine bump is re-verified here, because
+the on-disk format is a compatibility promise, not an implementation detail.
+
+**`v3.6.2` → `v3.7.0`** (2026-07-30, macOS arm64, Go 1.26.5) — **safe, no format change.**
+
+- The release adds **opt-in KDBX 4.1 support** (upstream PR #151) via a new
+  `WithDatabaseKDBXVersion41()`. It does **not** change what we write:
+  `WithDatabaseKDBXVersion4()` still delegates to `WithDatabaseKDBXVersion40()`.
+- `WithDatabaseKDBXVersion4()` is now **deprecated** — staticcheck (SA1019) flags it.
+  `internal/vault.Create` calls `WithDatabaseKDBXVersion40()` explicitly instead, so the minor
+  version is a named decision rather than whatever an alias resolves to next.
+- Verified: a freshly `kdbx init`-ed vault carries header bytes `00 00 04 00` (KDBX **4.0**,
+  little-endian minor then major) and `keepassxc-cli 2.7.12` unlocks it key-file-only.
+  `TestCreateWritesKdbx40OnDisk` in `internal/vault` now asserts those raw bytes, so a future
+  bump that flips the default fails the suite instead of silently changing every vault.
+- Also in the release: protected-field stream fix for KDBX 3.1 (upstream PR #152) — irrelevant
+  to us, we only write 4.0 — and `golang.org/x/crypto` `v0.48.0` → `v0.54.0`.
 
 ## Consequences for the plan
 
