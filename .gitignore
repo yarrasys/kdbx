@@ -4,6 +4,9 @@
 *.key
 .env
 .env.*
+# `kdbx export --out` takes an arbitrary path, and prod.env / secrets.env are the
+# obvious names to reach for — .env.* alone does not cover them.
+*.env
 !.env.example
 
 # build output

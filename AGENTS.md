@@ -34,15 +34,14 @@ green on Linux, macOS and Windows, and the current release is **v0.1.2**. As of 
 - **The consuming change has landed**: `yarrasys/extensions` merged the skill-and-plugin
   switch to the binary in PR #36, freezing its Python implementation.
 
-**Not done — this needs a human decision, so do not do it unprompted:**
+- **This repo is now self-contained.** `yarrasys/extensions` was **archived** on 2026-07-30,
+  so it is read-only: no pushes, no issues, no PRs. The design spec and the implementation plan
+  moved here before that door closed — `docs/kdbx-go-standalone-design.md` and
+  `docs/history/`. Nothing kdbx needs lives in another repo any more, and references to
+  extensions are historical by definition.
 
-1. **The normative design spec is published nowhere.** Golden rule 6 defers to
-   `docs/superpowers/specs/2026-07-24-kdbx-go-standalone-design.md` in `yarrasys/extensions`,
-   but that file exists only on a local `design/kdbx-go-standalone` branch that is on no
-   remote. Until it is pushed — or moved into this repo's `docs/`, which is arguably where a
-   contract governing this code belongs — the document this repo calls normative is
-   unreachable to everyone but its author. Treat `docs/spike-notes.md`, the README and the
-   `.txtar` contracts as the reachable statement of behavior in the meantime.
+**Nothing is outstanding.** Every item that once sat here — the git remote, the release tag, the
+consuming integration, the unpublished spec — is closed. Ordinary maintenance from here.
 
 A dev build is installed at `~/.local/bin/kdbx` (`0.1.2-dev`), replacing the old Python
 `install-launcher` shim, which has been deleted.
@@ -85,7 +84,7 @@ the public contract; a bare `error` silently becomes exit 1 and is a review fail
 is clean, `golangci-lint run` is clean. CI gates all three on Linux, macOS and Windows.
 
 **6. The compatibility contract is normative, and it lives in the spec.** The design spec
-(`docs/superpowers/specs/2026-07-24-kdbx-go-standalone-design.md` in `yarrasys/extensions`)
+([`docs/kdbx-go-standalone-design.md`](docs/kdbx-go-standalone-design.md), in this repo)
 sections **C** (compatibility) and **N** (new surfaces) define pointer discovery, the entry
 path grammar, the vault and key-file formats, the twelve operations' observable behavior,
 the exit-code table, error scrubbing, permissions, and locking. **Changing observable
@@ -117,7 +116,9 @@ Undocumented divergence is a bug, documented divergence is a decision.
 | `internal/guard/` | `PreToolUse` decision function plus its stdin/stdout shell |
 | `internal/mcpserver/` | stdio MCP server, five read-only tools |
 | `testdata/script/*.txtar` | testscript CLI-contract tests |
+| `docs/kdbx-go-standalone-design.md` | the **normative** compatibility contract — sections C and N (golden rule 6) |
 | `docs/spike-notes.md` | verified engine facts, every engine upgrade, and every deliberate divergence, with reasons |
+| `docs/history/` | the completed port plan. Historical record, not normative, not to be executed |
 | `.goreleaser.yaml`, `install.sh`, `Dockerfile`, `.github/workflows/` | release engineering |
 | `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` | the human on-ramp; both defer to this file for the rules |
 | `.github/dependabot.yml` | weekly dependency PRs; the KDBX engine is deliberately ungrouped |
@@ -165,6 +166,12 @@ NOTICE in the same change.
 
 - [README.md](README.md) — the user-facing contract
 - [SECURITY.md](SECURITY.md) — threat model and release verification
-- [`docs/spike-notes.md`](docs/spike-notes.md) — engine facts and accepted divergences
-- [`yarrasys/extensions`](https://github.com/yarrasys/extensions) — the frozen Python
-  reference implementation, the Claude Code plugin, and the design spec
+- [`docs/kdbx-go-standalone-design.md`](docs/kdbx-go-standalone-design.md) — **the normative
+  compatibility contract** (golden rule 6)
+- [`docs/spike-notes.md`](docs/spike-notes.md) — engine facts, engine upgrades, and accepted
+  divergences
+- [`docs/history/`](docs/history/) — the completed port plan, kept for the record. Not normative,
+  not to be executed.
+- [`yarrasys/extensions`](https://github.com/yarrasys/extensions) — **archived** 2026-07-30.
+  The frozen Python reference implementation and the Claude Code plugin that consumes this
+  binary. Read-only: nothing can be changed there, so nothing here should depend on it.

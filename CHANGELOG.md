@@ -28,6 +28,11 @@ Versions are cut from a `v*` tag.
   [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - `.github/dependabot.yml` — weekly Go module and GitHub Actions updates. The KDBX engine is
   excluded from the grouped Go PR so its bumps arrive alone and get re-verified.
+- **The normative design spec now lives in this repository** at
+  [`docs/kdbx-go-standalone-design.md`](docs/kdbx-go-standalone-design.md). It was authored in
+  `yarrasys/extensions`, which was archived on 2026-07-30 and is read-only, so the contract this
+  repo defers to is finally reachable to anyone reading the code it governs. The completed port
+  plan came with it as [`docs/history/`](docs/history/) — historical, not normative.
 
 ### Fixed
 
@@ -39,6 +44,9 @@ Versions are cut from a `v*` tag.
   `--output-signature`/`--output-certificate` flags the `signs` block relies on — signing would
   have appeared to succeed while publishing no `SHA256SUMS.sig`/`.pem`, the artifacts
   SECURITY.md tells users to verify.
+- **`.gitignore` now covers `*.env`.** It ignored `.env` and `.env.*` but not `prod.env` or
+  `secrets.env` — natural names for a `kdbx export --out` target, and exactly the files that
+  must never be committed. `.env.example` stays committable.
 
 ## [0.1.2] - 2026-07-25
 
