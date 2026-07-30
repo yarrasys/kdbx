@@ -16,11 +16,11 @@ Direct dependencies
 
   Module                                          Version    License
   ----------------------------------------------  ---------  --------------------
-  github.com/tobischo/gokeepasslib/v3             v3.6.2     MIT
+  github.com/tobischo/gokeepasslib/v3             v3.7.0     MIT
       The KDBX4 engine. Imported only by internal/vault (the engine boundary).
   github.com/spf13/cobra                          v1.10.2    Apache-2.0
       CLI framework: subcommands, help, shell completions.
-  github.com/modelcontextprotocol/go-sdk          v1.6.1     Apache-2.0 *
+  github.com/modelcontextprotocol/go-sdk          v1.7.0     Apache-2.0 *
       Official MCP Go SDK, backing `kdbx mcp`.
   github.com/gofrs/flock                          v0.13.0    BSD-3-Clause
       Advisory file locking for vault writes.
@@ -46,9 +46,11 @@ Indirect dependencies
   github.com/tobischo/argon2                      v0.1.0     BSD-3-Clause
   github.com/spf13/pflag                          v1.0.9     BSD-3-Clause
   github.com/yosida95/uritemplate/v3              v3.0.2     BSD-3-Clause
-  golang.org/x/crypto                             v0.48.0    BSD-3-Clause
+  golang.org/x/crypto                             v0.54.0    BSD-3-Clause
   golang.org/x/oauth2                             v0.35.0    BSD-3-Clause
+  golang.org/x/sync                               v0.20.0    BSD-3-Clause
   golang.org/x/sys                                v0.47.0    BSD-3-Clause
+  golang.org/x/time                               v0.15.0    BSD-3-Clause
   github.com/inconshreveable/mousetrap            v1.1.0     Apache-2.0
       Pulled in by cobra; linked on Windows builds only.
   golang.org/x/tools                              v0.42.0    BSD-3-Clause

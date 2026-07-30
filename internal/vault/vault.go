@@ -56,7 +56,12 @@ func Create(vaultPath, keyPath string) error {
 	if err != nil {
 		return kdbxerr.Wrap(err, "Locked", 3, "building credentials from %s", keyPath)
 	}
-	db := gokeepasslib.NewDatabase(gokeepasslib.WithDatabaseKDBXVersion4())
+	// Explicitly 4.0, not the deprecated WithDatabaseKDBXVersion4 alias: the engine
+	// gained opt-in 4.1 support in v3.7.0, and the format keepassxc-cli and the
+	// desktop app were verified against is 4.0 (docs/spike-notes.md). Naming the
+	// minor version keeps that a decision rather than whatever the alias resolves
+	// to next. TestCreateWritesKdbx40OnDisk pins the on-disk bytes.
+	db := gokeepasslib.NewDatabase(gokeepasslib.WithDatabaseKDBXVersion40())
 	db.Credentials = creds
 	root := gokeepasslib.NewGroup()
 	root.Name = "Root"

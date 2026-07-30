@@ -8,6 +8,20 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+### Changed
+
+- **KDBX engine updated** to `gokeepasslib` v3.7.0 (from v3.6.2). **No change to the vault
+  format**: the release adds *opt-in* KDBX 4.1 support, and kdbx continues to write KDBX 4.0.
+  `internal/vault.Create` now names `WithDatabaseKDBXVersion40()` explicitly instead of the
+  newly deprecated `WithDatabaseKDBXVersion4()` alias. Re-verified against
+  `keepassxc-cli` 2.7.12; see [docs/spike-notes.md](docs/spike-notes.md).
+- MCP SDK updated to `modelcontextprotocol/go-sdk` v1.7.0, and `golang.org/x/crypto` to v0.54.0.
+
+### Added
+
+- `TestCreateWritesKdbx40OnDisk` asserts the KDBX major/minor version in the raw header bytes
+  of a freshly created vault, so an engine upgrade cannot silently change the on-disk format.
+
 ## [0.1.2] - 2026-07-25
 
 ### Added
