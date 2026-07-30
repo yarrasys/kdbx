@@ -34,8 +34,40 @@ Versions are cut from a `v*` tag.
   repo defers to is finally reachable to anyone reading the code it governs. The completed port
   plan came with it as [`docs/history/`](docs/history/) — historical, not normative.
 
+### Fixed
+
+- **`init` and `rekey` no longer leave a handle open on the key file** (Windows). Both used
+  `gokeepasslib.NewKeyCredentials`, which opens the key file and never closes it; `Open` was
+  fixed for this previously and these two were missed. The consequence went beyond an untidy
+  handle: `rekey` removes the newly minted key file when a rekey fails, and on Windows the
+  leaked handle blocked that removal — stranding secret material on disk after an operation the
+  user watched fail. `TestKeyfileIsNotHeldOpen` now covers `Create`, `Open` and `Rekey`.
+
+### Fixed — found by fuzzing
+
+- **`shlex.Split` no longer corrupts bytes it cannot decode.** It converted its input to
+  `[]rune` first, which replaces every byte that is not valid UTF-8 with U+FFFD, so an argument
+  containing such a byte was executed as something other than what the caller asked for — with
+  no error. Splitting is now byte-oriented, like a real shell; valid multi-byte characters are
+  unaffected, since every character `Split` treats specially is ASCII.
+- **`ojson.Parse` now caps nested-object depth at 32.** Decoding captured each nested value and
+  re-scanned it one level down, making the work quadratic in depth: 24 ms at 1,000 levels,
+  1.5 s at 10,000. Pointer discovery walks up from the working directory, so kdbx reads
+  `.keepassxc.json` files it did not write — checking out a hostile repository should not be
+  able to wedge `kdbx run`. A real pointer nests three levels.
+
 ### Security
 
+- **Fuzz targets for all four hand-rolled parsers** (`dotenv`, `ojson`, `shlex`, and `pointer`'s
+  entry-path grammar), each asserting a property rather than merely the absence of a panic —
+  Parse/Render are inverses, re-encoding is idempotent, unquoted splitting matches whitespace
+  splitting, a rejected path returns nothing usable. Seed corpora run as part of `go test ./...`.
+- **CodeQL** (`security-and-quality` queries) on push, PR and weekly.
+- **Every GitHub Action is pinned to a commit SHA** with its version in a trailing comment. A
+  tag can be repointed at new code after review; a SHA cannot.
+- **`release.yml` no longer grants write permission workflow-wide.** `contents`, `packages` and
+  `id-token` write are scoped to the one job that publishes; the workflow default is now
+  `contents: read`.
 - **`govulncheck` now runs in CI** on every push and PR, plus weekly so a newly published
   advisory against an unchanged dependency surfaces without waiting for a code change. It fails
   the build only on a vulnerability kdbx actually *calls*; module-level advisories against

@@ -20,6 +20,11 @@ updates:
   # GitHub Actions. Left ungrouped by design — a major bump here can change the
   # release pipeline's observable output (see the cosign pin in release.yml), and
   # release.yml is never exercised by CI, so each one wants reading on its own.
+  #
+  # Every action is pinned to a commit SHA with the version in a trailing comment,
+  # because a tag can be repointed at new code after review. Dependabot
+  # understands that form: it bumps the SHA and rewrites the comment, so the PRs
+  # stay readable.
   - package-ecosystem: github-actions
     directory: /
     schedule:

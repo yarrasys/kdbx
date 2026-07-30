@@ -47,3 +47,41 @@ func TestSplitRejectsUnterminatedQuotes(t *testing.T) {
 		}
 	}
 }
+
+// TestSplitPreservesInvalidUTF8 pins byte-preservation. Split converted to []rune
+// until FuzzSplit found "\xdd": that conversion replaces every byte which is not
+// valid UTF-8 with U+FFFD, so re-encoding produced EF BF BD and the word handed to
+// exec was not the word the caller passed. Silent argument rewriting is the wrong
+// failure mode for a package that turns a string into an argv — an unterminated
+// quote errors rather than truncate, and this should be no different.
+func TestSplitPreservesInvalidUTF8(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		in   string
+		want []string
+	}{
+		{"bare invalid byte", "\xdd", []string{"\xdd"}},
+		{"invalid byte in a word", "a\xddb", []string{"a\xddb"}},
+		{"invalid byte, two words", "a\xdd b\xfe", []string{"a\xdd", "b\xfe"}},
+		{"quoted invalid byte", "\"a\xddb\"", []string{"a\xddb"}},
+		{"single-quoted invalid byte", "'\xff'", []string{"\xff"}},
+		{"valid multi-byte is untouched", "café 日本語", []string{"café", "日本語"}},
+		{"quoted multi-byte", `"héllo wörld"`, []string{"héllo wörld"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Split(tc.in)
+			if err != nil {
+				t.Fatalf("Split(%q): %v", tc.in, err)
+			}
+			if len(got) != len(tc.want) {
+				t.Fatalf("Split(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+			for i := range tc.want {
+				if got[i] != tc.want[i] {
+					t.Errorf("word %d = %q (% x), want %q (% x)",
+						i, got[i], got[i], tc.want[i], tc.want[i])
+				}
+			}
+		})
+	}
+}

@@ -3,6 +3,7 @@ package ojson
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 const sample = `{
@@ -126,5 +127,51 @@ func TestPreEscapedValuesRoundTripByteExactly(t *testing.T) {
 	}
 	if string(got) != src {
 		t.Fatalf("round-trip altered a pre-escaped file:\ngot  %q\nwant %q", got, src)
+	}
+}
+
+// TestParseRejectsDeeplyNestedObjects pins a depth limit on nested objects.
+//
+// Without one, parsing is quadratic in nesting depth: each level captures the
+// whole remaining subtree as a json.RawMessage and then re-scans it, so the input
+// is re-parsed once per level. Measured before the limit existed: 1 ms at depth
+// 100, 24 ms at 1,000, and 1.5 s at 10,000.
+//
+// It matters because pointer discovery walks *up* from the working directory, so
+// kdbx will read a `.keepassxc.json` it did not put there — checking out a hostile
+// repository and running any pointer-resolving command (`envs`, `check`, `list`,
+// `run`) is enough to reach this. A real pointer nests three levels
+// (root -> envs -> <env>), so the limit costs legitimate files nothing.
+func TestParseRejectsDeeplyNestedObjects(t *testing.T) {
+	const depth = 5000
+	deep := []byte(strings.Repeat(`{"a":`, depth) + `1` + strings.Repeat(`}`, depth))
+
+	start := time.Now()
+	_, err := Parse(deep)
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatalf("Parse accepted a %d-deep object; want a depth-limit error", depth)
+	}
+	if !strings.Contains(err.Error(), "nested too deeply") {
+		t.Errorf("error should name the cause, got: %v", err)
+	}
+	// Generous, but a return to quadratic scanning blows straight past it.
+	if elapsed > 2*time.Second {
+		t.Errorf("rejecting a %d-deep object took %s; the depth limit is not short-circuiting",
+			depth, elapsed)
+	}
+}
+
+// TestParseAcceptsSchemaDepth guards the other side of the limit: the real
+// pointer schema, and comfortable headroom above it, must still parse.
+func TestParseAcceptsSchemaDepth(t *testing.T) {
+	if _, err := Parse([]byte(sample)); err != nil {
+		t.Fatalf("the real pointer schema must parse: %v", err)
+	}
+	const ok = 16
+	nested := []byte(strings.Repeat(`{"a":`, ok) + `1` + strings.Repeat(`}`, ok))
+	if _, err := Parse(nested); err != nil {
+		t.Fatalf("%d levels is within the limit but was rejected: %v", ok, err)
 	}
 }

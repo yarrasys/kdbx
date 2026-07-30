@@ -3,6 +3,7 @@ package vault
 import (
 	"encoding/binary"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -56,4 +57,60 @@ func TestCreateWritesKdbx40OnDisk(t *testing.T) {
 			"format is a compatibility break; update the spec and spike notes first",
 			major, minor, wantMajor, wantMinor)
 	}
+}
+
+// TestKeyfileIsNotHeldOpen asserts that no vault operation leaves an open handle
+// on the keyfile. On Windows, os.Remove fails while a handle is open, so this test
+// is meaningful there and vacuous on Unix — which is exactly how the bug it guards
+// reached main: gokeepasslib's NewKeyCredentials opens the keyfile and never
+// closes it, Open was fixed for it in July, and Create and Rekey were not.
+//
+// The consequence is not just a noisy test. Rekey removes the newly minted keyfile
+// when the rekey fails; a leaked handle blocks that, stranding secret material on
+// disk after an operation the user saw fail.
+func TestKeyfileIsNotHeldOpen(t *testing.T) {
+	t.Run("after Create", func(t *testing.T) {
+		dir := t.TempDir()
+		v := filepath.Join(dir, "dev.kdbx")
+		k := filepath.Join(dir, "dev.keyx")
+		if err := Create(v, k); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+		if err := os.Remove(k); err != nil {
+			t.Fatalf("keyfile still held open after Create: %v", err)
+		}
+	})
+
+	t.Run("after Open and Close", func(t *testing.T) {
+		v, k := newVault(t)
+		h, err := Open(v, k)
+		if err != nil {
+			t.Fatalf("Open: %v", err)
+		}
+		if err := h.Close(); err != nil {
+			t.Fatalf("Close: %v", err)
+		}
+		if err := os.Remove(k); err != nil {
+			t.Fatalf("keyfile still held open after Open/Close: %v", err)
+		}
+	})
+
+	t.Run("after Rekey", func(t *testing.T) {
+		v, oldKey := newVault(t)
+		newKey := filepath.Join(filepath.Dir(oldKey), "rotated.keyx")
+		if err := Rekey(v, oldKey, newKey); err != nil {
+			t.Fatalf("Rekey: %v", err)
+		}
+		// The vault must still open with the new keyfile before we delete it.
+		h, err := Open(v, newKey)
+		if err != nil {
+			t.Fatalf("Open with the rotated keyfile: %v", err)
+		}
+		if err := h.Close(); err != nil {
+			t.Fatalf("Close: %v", err)
+		}
+		if err := os.Remove(newKey); err != nil {
+			t.Fatalf("new keyfile still held open after Rekey: %v", err)
+		}
+	})
 }
