@@ -34,6 +34,15 @@ Versions are cut from a `v*` tag.
   repo defers to is finally reachable to anyone reading the code it governs. The completed port
   plan came with it as [`docs/history/`](docs/history/) — historical, not normative.
 
+### Fixed
+
+- **`init` and `rekey` no longer leave a handle open on the key file** (Windows). Both used
+  `gokeepasslib.NewKeyCredentials`, which opens the key file and never closes it; `Open` was
+  fixed for this previously and these two were missed. The consequence went beyond an untidy
+  handle: `rekey` removes the newly minted key file when a rekey fails, and on Windows the
+  leaked handle blocked that removal — stranding secret material on disk after an operation the
+  user watched fail. `TestKeyfileIsNotHeldOpen` now covers `Create`, `Open` and `Rekey`.
+
 ### Fixed — found by fuzzing
 
 - **`shlex.Split` no longer corrupts bytes it cannot decode.** It converted its input to

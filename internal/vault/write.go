@@ -196,7 +196,14 @@ func Rekey(vaultPath, oldKeyPath, newKeyPath string) error {
 			return err
 		}
 		defer func() { _ = h.Close() }()
-		creds, err := gokeepasslib.NewKeyCredentials(newKeyPath)
+		// Not gokeepasslib.NewKeyCredentials: it opens the keyfile and never closes
+		// it. On Windows that leaked handle blocks the os.Remove below, so a failed
+		// rekey would strand a freshly minted keyfile — secret material — on disk.
+		keyData, err := os.ReadFile(newKeyPath)
+		if err != nil {
+			return kdbxerr.Wrap(err, "Locked", 3, "reading the new keyfile")
+		}
+		creds, err := gokeepasslib.NewKeyDataCredentials(keyData)
 		if err != nil {
 			return kdbxerr.Wrap(err, "Locked", 3, "building credentials from the new keyfile")
 		}
