@@ -65,17 +65,29 @@ jobs:
             dist/SHA256SUMS
           echo "signature verifies against the workflow identity"
 
+      # Stash the first checksums before the second build, whose --clean wipes dist.
+      - name: keep the first SHA256SUMS
+        run: cp dist/SHA256SUMS /tmp/SHA256SUMS.first
+
       # Reproducibility is only meaningful if it is checked. mod_timestamp stamps
       # archive mtimes from the commit, so a second build of the same commit must
       # produce identical archives and an identical SHA256SUMS.
+      #
+      # Driven through the action a second time rather than calling `goreleaser`
+      # from a run step: the action does not leave the binary on PATH (which is how
+      # the first version of this workflow failed), and reusing it guarantees both
+      # builds use the same pinned GoReleaser. Signing and images are skipped —
+      # neither affects SHA256SUMS, and rebuilding both arches costs minutes.
+      - name: second build of the same commit
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          args: release --snapshot --clean --skip=publish,announce,sign,docker
+        env:
+          HOMEBREW_TAP_TOKEN: dry-run-placeholder-not-used
+
       - name: builds are reproducible
         run: |
           set -euo pipefail
-          cp dist/SHA256SUMS /tmp/SHA256SUMS.first
-          # goreleaser-action leaves the binary on PATH, so this reuses the exact
-          # version the first build used. Images are skipped: they are not covered
-          # by SHA256SUMS and rebuilding both arches costs minutes for nothing.
-          goreleaser release --snapshot --clean --skip=publish,announce,sign,docker
           if ! diff -u /tmp/SHA256SUMS.first dist/SHA256SUMS; then
             echo "::error::rebuilding the same commit produced different checksums — mod_timestamp is not doing its job"
             exit 1
