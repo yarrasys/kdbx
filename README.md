@@ -3,6 +3,7 @@
 [![ci](https://github.com/yarrasys/kdbx/actions/workflows/ci.yml/badge.svg)](https://github.com/yarrasys/kdbx/actions/workflows/ci.yml)
 [![govulncheck](https://github.com/yarrasys/kdbx/actions/workflows/govulncheck.yml/badge.svg)](https://github.com/yarrasys/kdbx/actions/workflows/govulncheck.yml)
 [![release](https://img.shields.io/github/v/release/yarrasys/kdbx?sort=semver)](https://github.com/yarrasys/kdbx/releases/latest)
+[![openssf scorecard](https://api.scorecard.dev/projects/github.com/yarrasys/kdbx/badge)](https://scorecard.dev/viewer/?uri=github.com/yarrasys/kdbx)
 [![go version](https://img.shields.io/github/go-mod/go-version/yarrasys/kdbx)](go.mod)
 [![license](https://img.shields.io/github/license/yarrasys/kdbx)](LICENSE)
 
