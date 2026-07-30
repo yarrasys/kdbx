@@ -31,8 +31,27 @@ func Parse(b []byte) (*Object, error) {
 	return o, nil
 }
 
+// maxDepth caps nested objects. A real pointer file nests three levels
+// (root -> envs -> <env>), so this is generous headroom for a schema that has no
+// reason to grow deeper.
+//
+// The cap is not cosmetic. Decoding captures each nested value as a
+// json.RawMessage and then re-scans it one level down, so work is quadratic in
+// depth — measured at 24 ms for 1,000 levels and 1.5 s for 10,000. Pointer
+// discovery walks up from the working directory, which means kdbx reads
+// `.keepassxc.json` files it did not write; checking out a hostile repository
+// should not be able to wedge `kdbx run`.
+const maxDepth = 32
+
 // UnmarshalJSON decodes a JSON object, recording key order.
 func (o *Object) UnmarshalJSON(b []byte) error {
+	return o.unmarshal(b, 0)
+}
+
+func (o *Object) unmarshal(b []byte, depth int) error {
+	if depth > maxDepth {
+		return fmt.Errorf("ojson: object nested too deeply (limit %d)", maxDepth)
+	}
 	if o.vals == nil {
 		o.vals = map[string]any{}
 	}
@@ -62,7 +81,7 @@ func (o *Object) UnmarshalJSON(b []byte) error {
 		trimmed := bytes.TrimSpace(raw)
 		if len(trimmed) > 0 && trimmed[0] == '{' {
 			child := New()
-			if err := child.UnmarshalJSON(trimmed); err != nil {
+			if err := child.unmarshal(trimmed, depth+1); err != nil {
 				return err
 			}
 			val = child

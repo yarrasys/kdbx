@@ -76,6 +76,16 @@ make it pass. Every package is testable without a TTY and without network access
 that way. CLI-level behavior (stdout, stderr, exit code) belongs in a `testdata/script/*.txtar`
 testscript, not in a hand-rolled `exec.Command` test.
 
+The four hand-rolled parsers — `dotenv`, `ojson`, `shlex`, `pointer`'s entry-path grammar —
+also carry fuzz targets, because their interesting inputs are quoting and escaping cases nobody
+writes a table entry for. Each asserts a **property**, not just the absence of a panic:
+Parse/Render are inverses, re-encoding is idempotent, unquoted splitting matches whitespace
+splitting, a rejected path returns nothing usable. `go test ./...` runs the seed corpora; run
+`go test ./internal/<pkg>/ -fuzz Fuzz<Name> -fuzztime 60s` when you touch a parser. Both bugs
+these have found so far — quadratic nesting in `ojson`, silent UTF-8 corruption in `shlex` —
+were invisible to the table tests. A failing input is written to `testdata/fuzz/`; **commit it**,
+it is a regression seed.
+
 **4. Every error carries an exit code.** Command functions return `*kdbxerr.Error` (via
 `kdbxerr.New*`/`Wrap`), never a bare `error`. The code and the stable kind name are part of
 the public contract; a bare `error` silently becomes exit 1 and is a review failure.
