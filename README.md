@@ -1,5 +1,11 @@
 # kdbx
 
+[![ci](https://github.com/yarrasys/kdbx/actions/workflows/ci.yml/badge.svg)](https://github.com/yarrasys/kdbx/actions/workflows/ci.yml)
+[![govulncheck](https://github.com/yarrasys/kdbx/actions/workflows/govulncheck.yml/badge.svg)](https://github.com/yarrasys/kdbx/actions/workflows/govulncheck.yml)
+[![release](https://img.shields.io/github/v/release/yarrasys/kdbx?sort=semver)](https://github.com/yarrasys/kdbx/releases/latest)
+[![go version](https://img.shields.io/github/go-mod/go-version/yarrasys/kdbx)](go.mod)
+[![license](https://img.shields.io/github/license/yarrasys/kdbx)](LICENSE)
+
 `kdbx` keeps a project's secrets in a **per-project, per-environment KeePassXC vault**
 (KDBX4, unlocked by a key file only — no master password) and gets them into the tools that
 need them **without printing them into a transcript, a log file, or your shell history**.

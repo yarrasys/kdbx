@@ -34,6 +34,17 @@ Versions are cut from a `v*` tag.
   repo defers to is finally reachable to anyone reading the code it governs. The completed port
   plan came with it as [`docs/history/`](docs/history/) — historical, not normative.
 
+### Security
+
+- **`govulncheck` now runs in CI** on every push and PR, plus weekly so a newly published
+  advisory against an unchanged dependency surfaces without waiting for a code change. It fails
+  the build only on a vulnerability kdbx actually *calls*; module-level advisories against
+  required-but-uncalled code are reported, not fatal.
+- **OpenSSF Scorecard** runs weekly and on branch-protection changes, publishing its results and
+  uploading findings to the Security tab.
+- Repository security features enabled: **secret scanning**, **push protection** (a secret cannot
+  be pushed in the first place), and **Dependabot automated security fixes**.
+
 ### Fixed
 
 - CI and release workflows moved off several end-of-life action majors (`checkout` v4 → v7,

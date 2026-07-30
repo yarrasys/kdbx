@@ -1,0 +1,45 @@
+name: scorecard
+on:
+  # Scorecard grades branch protection, so re-run when that changes.
+  branch_protection_rule:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "41 6 * * 1"
+
+# Read-only by default; the analysis job widens only what it needs.
+permissions: read-all
+
+jobs:
+  analysis:
+    name: analyze
+    runs-on: ubuntu-latest
+    permissions:
+      # Upload the SARIF so findings land in the Security tab, not just a log.
+      security-events: write
+      # Publish results to the OpenSSF API — this is what makes the README
+      # badge resolve, and it requires an OIDC token.
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Scorecard reads the repo but must never be able to write to it.
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 5
+
+      - uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif
