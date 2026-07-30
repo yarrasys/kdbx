@@ -14,6 +14,12 @@ builds:
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
     flags: [-trimpath]
+    # Stamp file mtimes from the commit rather than the clock. -trimpath already
+    # makes the binary itself byte-identical across builds; without this the
+    # archives are not, because each build writes its own timestamps into the
+    # tar/zip members — so SHA256SUMS changes on a rebuild of the same tag and
+    # nobody can independently reproduce a published checksum.
+    mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags:
       - -s -w -X github.com/yarrasys/kdbx/cmd.Version={{.Version}}
 

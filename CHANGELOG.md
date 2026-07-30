@@ -58,6 +58,20 @@ Versions are cut from a `v*` tag.
 
 ### Security
 
+- **Release archives are now byte-reproducible.** `mod_timestamp` stamps archive member mtimes
+  from the commit instead of the clock. `-trimpath` already made the binary itself identical
+  across builds, but the archives were not — so `SHA256SUMS` changed on a rebuild of the same
+  tag and a published checksum could not be independently reproduced. Verified: two builds of
+  one commit now produce identical archives and an identical `SHA256SUMS`.
+- **A `release-dryrun` workflow rehearses the release pipeline** on demand and weekly, without
+  publishing. `release.yml` only ever runs on a `v*` tag, so a broken action pin, config error
+  or cosign regression used to surface mid-release — after the archives were uploaded and before
+  the signatures existed. Snapshot mode does run the `signs` block, so the dry run signs for
+  real and then *verifies* the signature, rather than trusting the signing step's exit code; it
+  also rebuilds to confirm the checksums are reproducible.
+- **Private vulnerability reporting enabled.** SECURITY.md and the issue-template config already
+  routed disclosures to GitHub Security Advisories, but the setting was off — so an outside
+  reporter had no way to open one.
 - **Fuzz targets for all four hand-rolled parsers** (`dotenv`, `ojson`, `shlex`, and `pointer`'s
   entry-path grammar), each asserting a property rather than merely the absence of a panic —
   Parse/Render are inverses, re-encoding is idempotent, unquoted splitting matches whitespace

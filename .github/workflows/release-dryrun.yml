@@ -1,0 +1,83 @@
+name: release-dryrun
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly. The point is to notice a broken release pipeline on a Monday rather
+    # than while cutting a tag: Dependabot bumps the actions in here, and nothing
+    # else exercises them.
+    - cron: "53 7 * * 1"
+
+permissions:
+  contents: read
+
+# Rehearses release.yml without publishing. That workflow only ever runs on a v*
+# tag, so until now a broken action pin, a GoReleaser config error, or a cosign
+# regression would surface for the first time mid-release — after the archives had
+# already been uploaded and before the signatures existed. Snapshot mode does run
+# the `signs` block, so this covers the part that is hardest to reason about.
+#
+# Deliberately NOT a copy of release.yml's permissions: nothing here writes to the
+# repo or to ghcr.io. id-token is the exception, because keyless signing needs it
+# and signing is most of what we are trying to prove.
+jobs:
+  dryrun:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # cosign keyless signing via OIDC
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {fetch-depth: 0}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: {go-version: "1.25.x"}
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.6.4
+      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: goreleaser (snapshot, no publish)
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          args: release --snapshot --clean --skip=publish,announce
+        env:
+          # A placeholder is enough: the cask is rendered into dist/ but never
+          # pushed, so the dry run has no business holding the real cross-repo
+          # token. Verified locally that templating resolves with a dummy value.
+          HOMEBREW_TAP_TOKEN: dry-run-placeholder-not-used
+
+      # The assertion that matters. cosign 3 accepts
+      # --output-signature/--output-certificate but ignores them, which would
+      # publish a release with no verifiable signature while reporting success —
+      # so check the files exist and actually verify, rather than trusting the
+      # exit code of the signing step.
+      - name: signatures were produced and verify
+        run: |
+          set -euo pipefail
+          for f in dist/SHA256SUMS dist/SHA256SUMS.sig dist/SHA256SUMS.pem; do
+            test -s "$f" || { echo "::error::$f missing or empty — the signs block did not do what it claims"; exit 1; }
+          done
+          cosign verify-blob \
+            --signature dist/SHA256SUMS.sig \
+            --certificate dist/SHA256SUMS.pem \
+            --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            dist/SHA256SUMS
+          echo "signature verifies against the workflow identity"
+
+      # Reproducibility is only meaningful if it is checked. mod_timestamp stamps
+      # archive mtimes from the commit, so a second build of the same commit must
+      # produce identical archives and an identical SHA256SUMS.
+      - name: builds are reproducible
+        run: |
+          set -euo pipefail
+          cp dist/SHA256SUMS /tmp/SHA256SUMS.first
+          # goreleaser-action leaves the binary on PATH, so this reuses the exact
+          # version the first build used. Images are skipped: they are not covered
+          # by SHA256SUMS and rebuilding both arches costs minutes for nothing.
+          goreleaser release --snapshot --clean --skip=publish,announce,sign,docker
+          if ! diff -u /tmp/SHA256SUMS.first dist/SHA256SUMS; then
+            echo "::error::rebuilding the same commit produced different checksums — mod_timestamp is not doing its job"
+            exit 1
+          fi
+          echo "a rebuild of the same commit produced identical checksums"
