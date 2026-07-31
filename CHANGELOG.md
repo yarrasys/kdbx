@@ -8,6 +8,13 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-07-31
+
+A maintenance release, and the first to carry fixes for bugs found by fuzzing and by the
+Windows CI matrix. Two of them could alter or strand data: `shlex.Split` handed `exec` an
+argument other than the one it was given, and a failed `rekey` left a freshly minted key file
+on disk. Vault format is unchanged — existing vaults, key files and pointers keep working.
+
 ### Changed
 
 - **KDBX engine updated** to `gokeepasslib` v3.7.0 (from v3.6.2). **No change to the vault
@@ -42,19 +49,27 @@ Versions are cut from a `v*` tag.
   handle: `rekey` removes the newly minted key file when a rekey fails, and on Windows the
   leaked handle blocked that removal — stranding secret material on disk after an operation the
   user watched fail. `TestKeyfileIsNotHeldOpen` now covers `Create`, `Open` and `Rekey`.
-
-### Fixed — found by fuzzing
-
-- **`shlex.Split` no longer corrupts bytes it cannot decode.** It converted its input to
+- **`shlex.Split` no longer corrupts bytes it cannot decode** (found by fuzzing). It converted its input to
   `[]rune` first, which replaces every byte that is not valid UTF-8 with U+FFFD, so an argument
   containing such a byte was executed as something other than what the caller asked for — with
   no error. Splitting is now byte-oriented, like a real shell; valid multi-byte characters are
   unaffected, since every character `Split` treats specially is ASCII.
-- **`ojson.Parse` now caps nested-object depth at 32.** Decoding captured each nested value and
+- **`ojson.Parse` now caps nested-object depth at 32** (found by fuzzing). Decoding captured each nested value and
   re-scanned it one level down, making the work quadratic in depth: 24 ms at 1,000 levels,
   1.5 s at 10,000. Pointer discovery walks up from the working directory, so kdbx reads
   `.keepassxc.json` files it did not write — checking out a hostile repository should not be
   able to wedge `kdbx run`. A real pointer nests three levels.
+- CI and release workflows moved off several end-of-life action majors (`checkout` v4 → v7,
+  `setup-go` v5 → v7, `golangci-lint-action` v7 → v9, the `docker/*` actions v3 → v4,
+  `goreleaser-action` v6 → v7). CI now declares least-privilege `contents: read`.
+- **cosign pinned to the 2.x line** in the release workflow. `cosign-installer@v4` defaults to
+  cosign 3, which enables `--new-bundle-format` and *ignores* the
+  `--output-signature`/`--output-certificate` flags the `signs` block relies on — signing would
+  have appeared to succeed while publishing no `SHA256SUMS.sig`/`.pem`, the artifacts
+  SECURITY.md tells users to verify.
+- **`.gitignore` now covers `*.env`.** It ignored `.env` and `.env.*` but not `prod.env` or
+  `secrets.env` — natural names for a `kdbx export --out` target, and exactly the files that
+  must never be committed. `.env.example` stays committable.
 
 ### Security
 
@@ -90,20 +105,6 @@ Versions are cut from a `v*` tag.
   uploading findings to the Security tab.
 - Repository security features enabled: **secret scanning**, **push protection** (a secret cannot
   be pushed in the first place), and **Dependabot automated security fixes**.
-
-### Fixed
-
-- CI and release workflows moved off several end-of-life action majors (`checkout` v4 → v7,
-  `setup-go` v5 → v7, `golangci-lint-action` v7 → v9, the `docker/*` actions v3 → v4,
-  `goreleaser-action` v6 → v7). CI now declares least-privilege `contents: read`.
-- **cosign pinned to the 2.x line** in the release workflow. `cosign-installer@v4` defaults to
-  cosign 3, which enables `--new-bundle-format` and *ignores* the
-  `--output-signature`/`--output-certificate` flags the `signs` block relies on — signing would
-  have appeared to succeed while publishing no `SHA256SUMS.sig`/`.pem`, the artifacts
-  SECURITY.md tells users to verify.
-- **`.gitignore` now covers `*.env`.** It ignored `.env` and `.env.*` but not `prod.env` or
-  `secrets.env` — natural names for a `kdbx export --out` target, and exactly the files that
-  must never be committed. `.env.example` stays committable.
 
 ## [0.1.2] - 2026-07-25
 
@@ -180,7 +181,8 @@ which is now the frozen reference implementation.
   surfaced some open failures as the generic exit 1. Go implements the documented code.
   Scripts that branched on exit 1 for a missing or unreadable key file must branch on 3.
 
-[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.1.2...main
+[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.1.3...main
+[0.1.3]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.3
 [0.1.2]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.2
 [0.1.1]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.1
 [0.1.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.0
