@@ -17,14 +17,15 @@ variable mappings and injects them into a child process' environment. It replace
 files as the source of truth; the vault stays outside the repo, so there is nothing secret
 to accidentally commit.
 
-> **v0.1.2.** All install methods are live — the curl installer, Homebrew, `go install`, the
-> `ghcr.io` container image, and the signed release archives (`SHA256SUMS` + cosign).
+> Every install method below is live — the curl installer, Homebrew, `go install`, the
+> `ghcr.io` container image, and the signed release archives (`SHA256SUMS` + cosign, with
+> reproducible builds). The badge above tracks the current version.
 
 ## Install
 
 ```sh
 # curl installer — downloads the release archive, verifies its SHA-256, installs to
-# ~/.local/bin (override with KDBX_INSTALL_DIR; pin with KDBX_VERSION=v0.1.0)
+# ~/.local/bin (override with KDBX_INSTALL_DIR; pin with KDBX_VERSION=v0.1.3)
 curl -LsSf https://raw.githubusercontent.com/yarrasys/kdbx/main/install.sh | sh
 ```
 
