@@ -9,7 +9,8 @@
 
 `kdbx` keeps a project's secrets in a **per-project, per-environment KeePassXC vault**
 (KDBX4, unlocked by a key file only — no master password) and gets them into the tools that
-need them **without printing them into a transcript, a log file, or your shell history**.
+need them **without kdbx ever printing them into a transcript, a log file, or your shell
+history**.
 Discovery is automatic: kdbx walks up from your current directory to a committed
 `.keepassxc.json` pointer file, works out which environment is active, and takes it from
 there. The headline command is `kdbx run -- <cmd>`, which resolves that environment's
@@ -224,13 +225,25 @@ kdbx is designed to be safe to hand to a coding agent. The rule is:
 - **Human-only:** `set`, `delete`, `mv`, `import`, `rekey`, `export`, and
   `get --reveal` / `get --clip`.
 
-An agent can *use* a credential — `kdbx run -- npm test` works fine — but never authors one
-and never sees its value.
+An agent can *use* a credential: `kdbx run -- npm test` works fine, and kdbx itself never
+prints the value.
 
-The binary itself does **not** enforce this. Possession of the key file is the real
-boundary: anything that can read the key file can open the vault, whoever or whatever it
-is. The role split is enforced in harnesses that support hooks, by `kdbx guard`, and it is
-advisory everywhere else.
+**This is a guardrail, not a boundary, and it is worth being precise about why.**
+
+The binary does not enforce the split. Possession of the key file is the real boundary:
+anything that can read the key file can open the vault, whoever or whatever it is. The role
+split is enforced in harnesses that support hooks, by `kdbx guard`, and it is advisory
+everywhere else.
+
+Nor does anything bind the *child* command. `run` injects into whatever argv it is handed,
+so `kdbx run -- env` prints every injected value, and so does a test script the agent edited
+first. kdbx not printing a secret is a property of kdbx, not of the system it runs in.
+
+What the split actually buys you is that an agent does not stumble into disclosure while
+doing something else, and cannot author, rotate or export a credential. It does not contain
+an agent that has decided to read one. If you need that, you need a boundary the agent
+cannot cross as your user: a separate account, a container, or a broker holding the keys.
+See [issue #11](https://github.com/yarrasys/kdbx/issues/11).
 
 `kdbx guard` reads a `PreToolUse` payload on stdin and either prints a deny envelope or
 nothing at all. It **always exits 0** — it fails open, so a guard problem can never wedge

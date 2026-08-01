@@ -8,6 +8,16 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+### Fixed
+
+- **README no longer claims an agent "never sees its value".** It does not hold: `run` injects
+  into whatever argv it is handed, so `kdbx run -- env` prints every injected value, as does a
+  test script the agent edited beforehand. kdbx not printing a secret is a property of kdbx,
+  not of the system around it. The roles section now states what the split does buy (an agent
+  will not stumble into disclosure, and cannot author, rotate or export a credential) and what
+  it does not (containment of an agent that has decided to read one), and points at
+  [#11](https://github.com/yarrasys/kdbx/issues/11). Raised by readers on r/AI_Agents.
+
 ## [0.1.3] - 2026-07-31
 
 A maintenance release, and the first to carry fixes for bugs found by fuzzing and by the
