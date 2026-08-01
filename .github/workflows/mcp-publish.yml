@@ -50,8 +50,7 @@ jobs:
           tmp=$(mktemp)
           jq --arg v "$VERSION" \
              '.version = $v
-              | (.packages[] | select(.registryType=="oci") | .identifier) = "ghcr.io/yarrasys/kdbx:" + $v
-              | (.packages[] | select(.registryType=="oci") | .version) = $v' \
+              | (.packages[] | select(.registryType=="oci") | .identifier) = "ghcr.io/yarrasys/kdbx:" + $v' \
              server.json > "$tmp" && mv "$tmp" server.json
           curl -sSL -o mcp-publisher.tar.gz \
             "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_amd64.tar.gz"
