@@ -1,4 +1,4 @@
-# kdbx
+# kdbx — per-project secrets in KeePassXC vaults, safe to hand an AI agent
 
 [![ci](https://github.com/yarrasys/kdbx/actions/workflows/ci.yml/badge.svg)](https://github.com/yarrasys/kdbx/actions/workflows/ci.yml)
 [![govulncheck](https://github.com/yarrasys/kdbx/actions/workflows/govulncheck.yml/badge.svg)](https://github.com/yarrasys/kdbx/actions/workflows/govulncheck.yml)
