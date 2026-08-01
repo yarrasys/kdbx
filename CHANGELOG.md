@@ -8,6 +8,19 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+### Added
+
+- **`run` now masks injected values in captured child output**
+  ([#14](https://github.com/yarrasys/kdbx/issues/14)). When a child stream is not a TTY (a
+  pipe, an agent harness, a log), each injected value of 8 bytes or more is replaced with
+  `***` on the way through, so `kdbx run -- env` under an agent yields masks instead of
+  values, with no configuration. A terminal keeps the raw fd, so interactive children are
+  untouched; `--no-mask` restores raw piped output for humans and is denied to agents by the
+  guard, like `get --reveal`. Matching is exact-value, longest-first, and chunking-invariant
+  (a value split across writes still masks; property fuzz-tested in `internal/maskio`).
+  Encoded values pass through: this stops accidents, not a hostile agent, same as the rest
+  of the tool.
+
 ### Security
 
 - **The guard now denies agent writes to `.keepassxc.json`**

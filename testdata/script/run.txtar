@@ -2,13 +2,28 @@ exec kdbx init
 stdin secret.txt
 exec kdbx set api/openai --var OPENAI_API_KEY
 
-# run injects the mapped var into the child
+# run injects the mapped var into the child. This pipe is not a TTY, so the
+# captured output carries the mask — and since only the exact injected value
+# masks, *** is itself proof the right value reached the child (spec C5).
 exec kdbx run -- printenv-shim OPENAI_API_KEY
-stdout '^sk-test-value$'
+stdout '^\*\*\*$'
+! stdout 'sk-test-value'
 stderr 'ACTIVE ENV: dev'
 
 # the banner never carries the secret
 ! stderr 'sk-test-value'
+
+# --no-mask restores raw output — a human affordance; the guard denies it
+# for agents (spec N3)
+exec kdbx run --no-mask -- printenv-shim OPENAI_API_KEY
+stdout '^sk-test-value$'
+
+# values below the masking cutoff pass through: masking "tiny" would mangle
+# ordinary output for no gain
+stdin short.txt
+exec kdbx set api/short --var SHORT_TOKEN
+exec kdbx run -- printenv-shim SHORT_TOKEN
+stdout '^tiny$'
 
 # run passes the child's exit code straight through
 ! exec kdbx run -- exit-shim 7
@@ -40,3 +55,5 @@ stdout '^$'
 }
 -- secret.txt --
 sk-test-value
+-- short.txt --
+tiny
