@@ -8,15 +8,24 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-01
+
+Release-engineering only; the binary is identical to 0.2.0 in behavior. Cut so the
+container image carries the label the MCP Registry requires, which cannot be added to an
+already-published multi-arch tag.
+
 ### Fixed
 
 - **MCP Registry publishing works now, and failures are loud.** The v0.2.0 release's
-  registry publish failed with a 400 (the registry no longer accepts `registryBaseUrl` on
-  OCI packages and wants a canonical `image:tag` identifier), and `continue-on-error` hid
-  it behind a green run, exactly the failure mode that step was flagged for. `server.json`
-  is now canonical, and publishing moved to its own `mcp-publish` workflow, triggered by
-  release publication and by manual dispatch, so a registry-side failure is a red run that
-  can be retried or backfilled without cutting a new tag.
+  registry publish failed with a 400, and `continue-on-error` hid it behind a green run,
+  exactly the failure mode that step was flagged for. Three registry-side rules were
+  stricter than the published schema: no `registryBaseUrl` on OCI packages, no package
+  `version` field (the canonical `image:tag` identifier carries it), and the image itself
+  must bear an `io.modelcontextprotocol.server.name` label proving intent. `server.json`
+  is now canonical, the label ships in the image via `.goreleaser.yaml`, and publishing
+  moved to its own `mcp-publish` workflow, triggered by release publication and by manual
+  dispatch, so a registry-side failure is a red run that can be retried or backfilled
+  without cutting a new tag.
 
 ## [0.2.0] - 2026-08-01
 
@@ -266,7 +275,8 @@ which is now the frozen reference implementation.
   surfaced some open failures as the generic exit 1. Go implements the documented code.
   Scripts that branched on exit 1 for a missing or unreadable key file must branch on 3.
 
-[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.2.0...main
+[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.2.1...main
+[0.2.1]: https://github.com/yarrasys/kdbx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.2.0
 [0.1.3]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.3
 [0.1.2]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.2

@@ -85,6 +85,10 @@ dockers_v2:
     # the package page shows the README and inherits the repo's visibility.
     labels:
       org.opencontainers.image.source: "https://github.com/yarrasys/kdbx"
+      # The MCP Registry refuses to list an OCI package unless the image itself
+      # carries this label as proof of intent (discovered on the v0.2.0
+      # publish, which failed for lack of it).
+      io.modelcontextprotocol.server.name: "io.github.yarrasys/kdbx"
       org.opencontainers.image.url: "https://github.com/yarrasys/kdbx"
       org.opencontainers.image.documentation: "https://github.com/yarrasys/kdbx#readme"
       org.opencontainers.image.title: kdbx
