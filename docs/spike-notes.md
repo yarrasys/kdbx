@@ -23,6 +23,7 @@ implementation (`skills/kdbx/kdbx.py`):
 | Recycle Bin | A fresh Python vault has `Meta.RecycleBinEnabled = true` but `RecycleBinUUID` is all zeros — i.e. **enabled but not yet created**. `recycleBinName()` must treat a zero UUID as "no bin", and `ensureRecycleBin()` must create the group and set the UUID on first use. |
 | Entry construction | `gokeepasslib.NewEntry()` needs `e.Times = gokeepasslib.NewTimeData()` set explicitly; omitting it risks nil-pointer marshal issues. |
 | Lock/unlock discipline | `UnlockProtectedEntries()` after every decode, `LockProtectedEntries()` before every encode, and re-unlock after a write if the in-memory handle stays in use. |
+| Meta custom data (the N6 policy anchor) | `db.Content.Meta.CustomData` (`[]CustomData{Key, Value}`) round-trips through gokeepasslib and through KeePassXC. Verified against `keepassxc-cli` 2.7.12: a vault carrying `kdbx:policy:<env>` opens and lists normally, and a keepassxc-cli **write** to the same vault (`mkdir`) preserves the custom data — a desktop-app save does not strip the anchor. Do not set `LastModificationTime` on the item: it is a KDBX 4.1 field and kdbx writes 4.0 (the library strips it by version, but writing 4.0-clean is the contract). |
 
 ## Engine upgrades since the spike
 

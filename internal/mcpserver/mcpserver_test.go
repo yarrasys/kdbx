@@ -167,3 +167,19 @@ func TestRunToolRejectsAnEmptyCommand(t *testing.T) {
 		t.Fatal("expected an error for an empty command")
 	}
 }
+
+func TestRunToolMasksAnEchoedSecret(t *testing.T) {
+	project(t)
+	out, err := handler(t, "kdbx_run")(context.Background(), map[string]any{
+		"command": "sh -c " + strconv.Quote("echo $API_KEY"),
+	})
+	if err != nil {
+		t.Fatalf("kdbx_run: %v", err)
+	}
+	if strings.Contains(out, "sk-secret") {
+		t.Fatalf("kdbx_run returned the raw value to the model:\n%s", out)
+	}
+	if !strings.Contains(out, "***") {
+		t.Fatalf("expected the mask in the output, got:\n%s", out)
+	}
+}

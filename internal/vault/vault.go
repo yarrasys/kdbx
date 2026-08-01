@@ -117,6 +117,19 @@ func Open(vaultPath, keyPath string) (*Handle, error) {
 // Close releases the handle. It never writes.
 func (h *Handle) Close() error { h.db = nil; return nil }
 
+// CustomData returns the vault-level custom data value stored under key, or
+// "" when absent. kdbx uses this to anchor the pointer's policy hash inside
+// the vault (spec N6): vault writes are human-only under the roles contract,
+// so the anchor is what makes an out-of-band policy edit detectable.
+func (h *Handle) CustomData(key string) string {
+	for _, cd := range h.db.Content.Meta.CustomData {
+		if cd.Key == key {
+			return cd.Value
+		}
+	}
+	return ""
+}
+
 // GetField reads one field of one entry.
 func (h *Handle) GetField(groupPath []string, title, field string) (string, error) {
 	e := h.findEntry(groupPath, title, false)

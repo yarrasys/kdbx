@@ -18,6 +18,8 @@ func TestDecideBlocksAgentWriteOps(t *testing.T) {
 		"kdbx get api/openai --clip",
 		"kdbx run --no-mask -- env",
 		"kdbx run --any -- env",
+		"kdbx policy bless",
+		"kdbx policy bless --yes",
 	} {
 		if got := Decide(cmd); got == "" {
 			t.Errorf("Decide(%q) allowed a human-only operation", cmd)
@@ -36,6 +38,7 @@ func TestDecideAllowsAgentReadOps(t *testing.T) {
 		"kdbx list",
 		"kdbx check",
 		"kdbx envs",
+		"kdbx policy",
 		"kdbx init",
 		"echo kdbx set api/openai",
 		"npm test",

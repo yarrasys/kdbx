@@ -323,3 +323,62 @@ func TestResolveEnvMalformedAllowFailsClosed(t *testing.T) {
 		t.Fatal("malformed run.allow resolved without error")
 	}
 }
+
+func TestResolveEnvReadsPolicyMode(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("KEEPASSXC_DIR", filepath.Join(dir, "kpxc"))
+	p, _ := Load(writePointer(t, dir,
+		`{"project":"x","envs":{"dev":{"policy":{"mode":"strict"}}}}`))
+
+	ep, err := p.ResolveEnv("dev")
+	if err != nil {
+		t.Fatalf("ResolveEnv: %v", err)
+	}
+	if ep.Mode != "strict" {
+		t.Fatalf("Mode %q, want strict", ep.Mode)
+	}
+}
+
+func TestResolveEnvUnknownPolicyModeFailsClosed(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("KEEPASSXC_DIR", filepath.Join(dir, "kpxc"))
+	p, _ := Load(writePointer(t, dir,
+		`{"project":"x","envs":{"dev":{"policy":{"mode":"fortress"}}}}`))
+
+	if _, err := p.ResolveEnv("dev"); err == nil {
+		t.Fatal("unknown policy mode resolved without error")
+	}
+}
+
+func TestPolicyHashCoversPolicyAndRun(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("KEEPASSXC_DIR", filepath.Join(dir, "kpxc"))
+	p1, _ := Load(writePointer(t, dir,
+		`{"project":"x","envs":{"dev":{"policy":{"mode":"strict"},"run":{"allow":["npm test"]}}}}`))
+	h1, err := p1.PolicyHash("dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h1 == "" {
+		t.Fatal("empty hash")
+	}
+
+	// Same policy+run, different vars: hash unchanged — set --var must not
+	// invalidate the anchor.
+	dir2 := t.TempDir()
+	p2, _ := Load(writePointer(t, dir2,
+		`{"project":"x","envs":{"dev":{"vars":{"A":"g/t"},"policy":{"mode":"strict"},"run":{"allow":["npm test"]}}}}`))
+	h2, _ := p2.PolicyHash("dev")
+	if h2 != h1 {
+		t.Fatalf("vars changed the policy hash: %s vs %s", h2, h1)
+	}
+
+	// A different allowlist: hash changes.
+	dir3 := t.TempDir()
+	p3, _ := Load(writePointer(t, dir3,
+		`{"project":"x","envs":{"dev":{"policy":{"mode":"strict"},"run":{"allow":["npm test","env"]}}}}`))
+	h3, _ := p3.PolicyHash("dev")
+	if h3 == h1 {
+		t.Fatal("allowlist change did not change the policy hash")
+	}
+}

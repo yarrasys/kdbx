@@ -238,6 +238,13 @@ func blockedKdbxOp(tokens []string) string {
 			}
 		}
 	}
+	if op == "policy" {
+		for _, t := range tokens {
+			if t == "bless" {
+				return "policy bless"
+			}
+		}
+	}
 	if op == "run" {
 		// Only kdbx's own flags count: everything after -- is the child's argv.
 		for _, t := range tokens {

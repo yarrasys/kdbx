@@ -3,6 +3,8 @@
 package pointer
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,6 +35,9 @@ type EnvPaths struct {
 	// run without --any).
 	Allow    []string
 	AllowSet bool
+	// Mode is the env's `policy.mode`: "" or "standard" for the default
+	// behavior, "strict" for the locked-down profile (spec N6).
+	Mode string
 }
 
 // Find walks up from startDir looking for the pointer file.
@@ -141,6 +146,17 @@ func (p *Pointer) ResolveEnv(env string) (EnvPaths, error) {
 			out.VarOrder = append(out.VarOrder, k)
 		}
 	}
+	if pol := cfg.Obj("policy"); pol.Has("mode") {
+		switch mode := pol.Str("mode"); mode {
+		case "standard", "strict":
+			out.Mode = mode
+		default:
+			// An unrecognized mode fails closed: it is a security setting,
+			// and "strict" misspelled must not silently mean "standard".
+			return EnvPaths{}, kdbxerr.Preflight(
+				"env '%s': unknown policy.mode (want standard or strict)", env)
+		}
+	}
 	if runCfg := cfg.Obj("run"); runCfg.Has("allow") {
 		allow, ok := runCfg.Strs("allow")
 		if !ok {
@@ -163,6 +179,45 @@ func resolveArtifact(configured, fallback string) (string, error) {
 		return paths.Resolve(fallback), nil
 	}
 	return paths.Expand(configured)
+}
+
+// PolicyHash returns the hex SHA-256 over env's policy-relevant pointer
+// content: the `policy` and `run` subobjects as stored in the file. `vars`
+// and the artifact paths are deliberately outside the hash, so `set --var`
+// does not invalidate an anchor; remapping a var changes which value is
+// injected but not what the policy permits. The hash is over the stored
+// bytes, not a canonicalized form: it asserts "the file the human blessed",
+// not semantic equality.
+func (p *Pointer) PolicyHash(env string) (string, error) {
+	envs := p.root.Obj("envs")
+	cfg := envs.Obj(env)
+	if cfg == nil {
+		return "", kdbxerr.NotFound("env '%s' not configured in pointer", env)
+	}
+	sum := sha256.New()
+	for _, key := range []string{"policy", "run"} {
+		sum.Write([]byte(key + "="))
+		if obj := cfg.Obj(key); obj != nil {
+			b, err := obj.MarshalJSON()
+			if err != nil {
+				return "", kdbxerr.Wrap(err, "Preflight", 7, "hashing %s", key)
+			}
+			sum.Write(b)
+		} else {
+			sum.Write([]byte("null"))
+		}
+		sum.Write([]byte{0})
+	}
+	return hex.EncodeToString(sum.Sum(nil)), nil
+}
+
+// PolicyAnchorKey names the vault custom-data slot holding env's blessed
+// policy hash.
+func PolicyAnchorKey(env string) string { return "kdbx:policy:" + env }
+
+// SetPolicyMode records policy.mode under env, creating levels as needed.
+func (p *Pointer) SetPolicyMode(env, mode string) {
+	p.root.EnsureObj("envs").EnsureObj(env).EnsureObj("policy").SetString("mode", mode)
 }
 
 // SetVar records varName -> entryPath under env, creating levels as needed.

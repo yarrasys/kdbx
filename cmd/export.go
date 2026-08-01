@@ -34,7 +34,7 @@ func runExport(c *cobra.Command, out string, allowMissing bool) error {
 	if err != nil {
 		return err
 	}
-	vals, order, err := vaultvars.Resolve(ctx, allowMissing)
+	vals, order, err := vaultvars.Resolve(ctx, allowMissing, nil)
 	if err != nil {
 		return err
 	}

@@ -13,8 +13,10 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/yarrasys/kdbx/internal/envctx"
+	"github.com/yarrasys/kdbx/internal/maskio"
 	"github.com/yarrasys/kdbx/internal/pointer"
 	"github.com/yarrasys/kdbx/internal/runner"
+	"github.com/yarrasys/kdbx/internal/runpolicy"
 	"github.com/yarrasys/kdbx/internal/secretio"
 	"github.com/yarrasys/kdbx/internal/shlex"
 	"github.com/yarrasys/kdbx/internal/vault"
@@ -150,8 +152,8 @@ func Tools() []ToolSpec {
 		},
 		{
 			Name: "kdbx_run",
-			Description: "Run a command with the active environment's secrets injected. The " +
-				"secrets are never printed.",
+			Description: "Run a command with the active environment's secrets injected. kdbx " +
+				"never prints a secret, and injected values are masked in the captured output.",
 			Handler: func(_ context.Context, args map[string]any) (string, error) {
 				line := str(args, "command")
 				// Shell-aware splitting, matching the Python server's
@@ -168,15 +170,30 @@ func Tools() []ToolSpec {
 				if err != nil {
 					return "", err
 				}
-				vals, _, err := vaultvars.Resolve(ctx, false)
+				// Same gate as the CLI's `run` (allowlist, strict policy,
+				// audit, anchor), with no escape hatches: this is an agent
+				// surface by definition.
+				anchor, err := runpolicy.Gate(ctx, argv, runpolicy.Flags{})
 				if err != nil {
 					return "", err
 				}
+				vals, order, err := vaultvars.Resolve(ctx, false, anchor)
+				if err != nil {
+					return "", err
+				}
+				if err := runpolicy.Record(ctx, argv, order); err != nil {
+					return "", err
+				}
+				// The result goes straight into a model transcript, which is
+				// exactly the captured-output case: always mask. An echoed
+				// value comes back as ***.
 				var out bytes.Buffer
-				code, err := runner.Run(argv, vals, nil, &out, &out)
+				mw := maskio.New(&out, maskio.Values(vals))
+				code, err := runner.Run(argv, vals, nil, mw, mw)
 				if err != nil {
 					return "", err
 				}
+				_ = mw.Flush()
 				fmt.Fprintf(&out, "\n[exit %d]\n", code)
 				return out.String(), nil
 			},

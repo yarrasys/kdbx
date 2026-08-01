@@ -7,10 +7,10 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/yarrasys/kdbx/internal/allowlist"
 	"github.com/yarrasys/kdbx/internal/kdbxerr"
 	"github.com/yarrasys/kdbx/internal/maskio"
 	"github.com/yarrasys/kdbx/internal/runner"
+	"github.com/yarrasys/kdbx/internal/runpolicy"
 	"github.com/yarrasys/kdbx/internal/vaultvars"
 )
 
@@ -52,24 +52,18 @@ func runRun(c *cobra.Command, args []string, allowMissing, noMask, anyCmd bool) 
 		return err
 	}
 
-	// The pointer's run.allow list pins which commands may receive this
-	// environment's values (spec C5). Checked before the vault is touched:
-	// a refused command has no business opening it. --any bypasses for ad hoc
-	// human use; the guard denies --any for agents (N3).
-	if ctx.AllowSet && !anyCmd {
-		ok, err := allowlist.Match(ctx.Allow, args)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return kdbxerr.NotAllowed(
-				"kdbx run: command not in this env's run.allow list " +
-					"(add it to .keepassxc.json, or a human can pass --any)")
-		}
-	}
-
-	vals, _, err := vaultvars.Resolve(ctx, allowMissing)
+	// Allowlist, strict-policy rules, audit, and the policy anchor all live in
+	// runpolicy — the same gate the MCP server's kdbx_run goes through, so the
+	// two surfaces cannot drift (spec C5, N6).
+	anchor, err := runpolicy.Gate(ctx, args, runpolicy.Flags{NoMask: noMask, Any: anyCmd})
 	if err != nil {
+		return err
+	}
+	vals, order, err := vaultvars.Resolve(ctx, allowMissing, anchor)
+	if err != nil {
+		return err
+	}
+	if err := runpolicy.Record(ctx, args, order); err != nil {
 		return err
 	}
 

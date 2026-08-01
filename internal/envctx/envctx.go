@@ -19,6 +19,7 @@ type Context struct {
 	VarOrder []string
 	Allow    []string
 	AllowSet bool
+	Mode     string
 	Pointer  *pointer.Pointer
 }
 
@@ -42,7 +43,7 @@ func Resolve(cliEnv, startDir string) (*Context, error) {
 		Env: env, Source: source,
 		Vault: ep.Vault, KeyFile: ep.KeyFile,
 		Vars: ep.Vars, VarOrder: ep.VarOrder,
-		Allow: ep.Allow, AllowSet: ep.AllowSet,
+		Allow: ep.Allow, AllowSet: ep.AllowSet, Mode: ep.Mode,
 		Pointer: p,
 	}, nil
 }
