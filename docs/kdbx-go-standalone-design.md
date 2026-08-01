@@ -142,7 +142,7 @@ All ops accept `--env E`. "Banner" = `ACTIVE ENV: <env>  vault=<path>  (source: 
 | `list [GROUP]` | | sorted `group/…/title` lines, prefix-filtered by GROUP, Recycle Bin excluded; never values |
 | `delete PATH` ✦ | `--purge` | default soft-delete to Recycle Bin; `--purge` prompts `y/N` (TTY only — non-TTY refuses, exit 4) then removes permanently |
 | `mv SRC DST` ✦ | | move/retitle entry (create dest groups); re-point active env's var mappings that reference SRC, preserving `:field` suffix; stderr `re-pointed N var mapping(s) …` when any |
-| `run` ✦ | `--allow-missing`, `-- CMD…` | resolve active env's vars map → inject into child env (parent env + overrides); resolve argv[0] via PATH lookup (Windows PATHEXT — the `shutil.which` lesson); spawn, wait, **pass through child exit code**; no command → exit 2; unresolved var → exit 5 unless `--allow-missing` |
+| `run` ✦ | `--allow-missing`, `--no-mask`, `-- CMD…` | resolve active env's vars map → inject into child env (parent env + overrides); resolve argv[0] via PATH lookup (Windows PATHEXT — the `shutil.which` lesson); spawn, wait, **pass through child exit code**; a child stream that is not a TTY has injected values (≥ 8 bytes) replaced with `***` on the way through — exact-match only, longest-first, chunking-invariant (`internal/maskio`); a TTY stream keeps the raw fd so interactive children are untouched; `--no-mask` disables masking and is denied to agents by the guard (N3); no command → exit 2; unresolved var → exit 5 unless `--allow-missing` |
 | `export` ✦ | `--out F`, `--allow-missing` | render vars as dotenv (always double-quoted; escape `\\`, `\"`, `\n`); `--out`: atomic 0600 write + gitignore reminder; else stdout |
 | `import FILE` ✦ | | parse dotenv (no interpolation); each KEY stored at `imported/KEY:password` + var mapping; stderr reminder to remove/rotate the source |
 | `check` | | per missing mapping: stdout `MISSING VAR -> path`; exit 0 clean / 5 drift |
@@ -223,7 +223,8 @@ client. No write tools — the roles contract (C10) applies to machines too.
 Port of `plugins/kdbx/hooks/guard.py` `decide()` semantics as a built-in: reads PreToolUse
 JSON on stdin, prints a `permissionDecision: deny` envelope (same wording) or nothing;
 **always exits 0 / fails open**. Blocks (a) agent-issued human-only ops (C10 list, incl.
-`get --reveal/--clip`), (b) non-kdbx programs touching `*.kdbx`/`*.keyx` or the KeePassXC
+`get --reveal/--clip` and `run --no-mask` — flags after `run`'s `--` belong to the child
+and are ignored), (b) non-kdbx programs touching `*.kdbx`/`*.keyx` or the KeePassXC
 config dir, (c) shell writes to the committed pointer file `.keepassxc.json`: output
 redirection onto it, in-place editors (`sed -i`, `perl -i`), `tee`, interactive editors,
 and `mv`/`cp` with the pointer as destination. Pointer reads stay allowed (the file is
