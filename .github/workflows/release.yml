@@ -52,26 +52,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
-      # Publish the MCP Registry entry after the release exists, so the version
-      # it advertises is already installable. GitHub OIDC proves ownership of the
-      # io.github.yarrasys namespace — no token to mint or rotate, which is why
-      # this runs here rather than from a laptop.
-      #
-      # Non-fatal on purpose: the registry is a directory listing, not part of the
-      # artifact chain. A registry outage must not fail a release whose binaries,
-      # checksums and signatures already published successfully.
-      - name: publish to the MCP Registry
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Keep the manifest in step with the tag being released.
-          tmp=$(mktemp)
-          jq --arg v "$VERSION" \
-             '.version = $v | (.packages[] | select(.registryType=="oci") | .version) = $v' \
-             server.json > "$tmp" && mv "$tmp" server.json
-          curl -sSL -o mcp-publisher.tar.gz \
-            "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_amd64.tar.gz"
-          tar xzf mcp-publisher.tar.gz mcp-publisher
-          ./mcp-publisher login github-oidc
-          ./mcp-publisher publish
