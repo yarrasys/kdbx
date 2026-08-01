@@ -8,6 +8,15 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+### Security
+
+- **The guard now denies agent writes to `.keepassxc.json`**
+  ([#13](https://github.com/yarrasys/kdbx/issues/13)). Output redirection onto the pointer,
+  `sed -i`/`perl -i`, `tee`, interactive editors, and `mv`/`cp` with the pointer as
+  destination are denied; reads stay allowed, and kdbx itself remains a recognized invoker.
+  The pointer selects which vault and key file kdbx opens, so an agent editing it is editing
+  its own permissions. Heuristic and fail-open, like the rest of the guard.
+
 ### Fixed
 
 - **README no longer claims an agent "never sees its value".** It does not hold: `run` injects

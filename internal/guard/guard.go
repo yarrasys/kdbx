@@ -29,7 +29,21 @@ var blockedOps = map[string]bool{
 var (
 	secretRe   = regexp.MustCompile(`(?i)\.(kdbx|keyx)\b`)
 	segSplitRe = regexp.MustCompile(`\|\||&&|[;|\n]`)
+	// redirRe finds shell output redirections and captures the target path.
+	redirRe = regexp.MustCompile(`>>?\s*([^\s>|;&]+)`)
 )
+
+// pointerName is the committed pointer file the guard must keep agents from
+// rewriting: it selects which vault and key file kdbx opens, so an agent that
+// edits it is editing its own permissions. Reads stay allowed (the file is
+// committed and holds no secrets), and kdbx itself writes it legitimately.
+const pointerName = ".keepassxc.json"
+
+// pointerWriterProgs always write their file arguments.
+var pointerWriterProgs = map[string]bool{
+	"tee": true, "vi": true, "vim": true, "nvim": true, "nano": true,
+	"emacs": true, "code": true, "subl": true,
+}
 
 // Decide returns a deny reason for command, or "" to allow it.
 func Decide(command string) string {
@@ -47,6 +61,10 @@ func Decide(command string) string {
 			return "kdbx role-guard: '" + op + "' is a human-only operation (it mutates the vault " +
 				"or exposes a secret value). Don't run it as the agent — give the command " +
 				"to the human to run in their own terminal (or via `!kdbx ...`)."
+		}
+
+		if reason := pointerWriteReason(seg, tokens); reason != "" {
+			return reason
 		}
 
 		norm := strings.ReplaceAll(seg, `\`, "/")
@@ -69,6 +87,68 @@ func Decide(command string) string {
 		}
 		return "kdbx leak-guard: '" + name + "' would read a KeePassXC vault/keyfile (" + what + "). " +
 			"Use `kdbx run -- ...` to inject secrets without printing them."
+	}
+	return ""
+}
+
+// isPointerPath reports whether tok names the pointer file, at any path.
+func isPointerPath(tok string) bool {
+	tok = strings.Trim(tok, `"'`)
+	return path.Base(strings.ReplaceAll(tok, `\`, "/")) == pointerName
+}
+
+const pointerWriteDeny = "kdbx role-guard: writing " + pointerName + " is a human-only " +
+	"operation (it selects which vault, key file and variable mappings kdbx uses). " +
+	"Don't edit it as the agent: ask the human to make the change in their own editor."
+
+// pointerWriteReason reports why this segment would write the pointer file, or
+// "" when it is fine. Detection is deliberately heuristic and fail-open: it
+// catches the obvious one-liners (redirection, in-place editors, tee, mv/cp
+// onto the file), not every conceivable write.
+func pointerWriteReason(seg string, tokens []string) string {
+	// Shell redirection writes regardless of which program runs.
+	for _, m := range redirRe.FindAllStringSubmatch(seg, -1) {
+		if isPointerPath(m[1]) {
+			return pointerWriteDeny
+		}
+	}
+
+	prog := programOf(tokens)
+	if allowedInvokers[prog] {
+		return ""
+	}
+	touchesPointer := false
+	for _, tok := range tokens {
+		if isPointerPath(tok) {
+			touchesPointer = true
+			break
+		}
+	}
+	if !touchesPointer {
+		return ""
+	}
+
+	switch {
+	case pointerWriterProgs[prog]:
+		return pointerWriteDeny
+	case prog == "sed" || prog == "perl":
+		// Only in-place editing writes; without -i these are reads.
+		for _, tok := range tokens {
+			if strings.HasPrefix(tok, "-i") {
+				return pointerWriteDeny
+			}
+		}
+	case prog == "mv" || prog == "cp":
+		// Only the destination is a write; the pointer as source is a read.
+		for i := len(tokens) - 1; i > 0; i-- {
+			if strings.HasPrefix(tokens[i], "-") {
+				continue
+			}
+			if isPointerPath(tokens[i]) {
+				return pointerWriteDeny
+			}
+			break
+		}
 	}
 	return ""
 }
