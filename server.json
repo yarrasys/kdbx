@@ -1,0 +1,78 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.yarrasys/kdbx",
+  "title": "kdbx",
+  "description": "Read-only access to secrets in a local KeePassXC vault. Runs commands with them injected.",
+  "version": "0.1.3",
+  "websiteUrl": "https://github.com/yarrasys/kdbx#agent-and-editor-integration",
+  "repository": {
+    "url": "https://github.com/yarrasys/kdbx",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "oci",
+      "registryBaseUrl": "https://ghcr.io",
+      "identifier": "ghcr.io/yarrasys/kdbx",
+      "version": "0.1.3",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "-v",
+          "description": "Mount the project directory containing the committed .keepassxc.json pointer file. kdbx discovers the pointer by walking up from the working directory.",
+          "value": "{project_dir}:/work",
+          "isRequired": true,
+          "variables": {
+            "project_dir": {
+              "description": "Absolute path to the project whose secrets you want available",
+              "isRequired": true,
+              "format": "filepath"
+            }
+          }
+        },
+        {
+          "type": "named",
+          "name": "-v",
+          "description": "Mount the KeePassXC directory holding the vault and its key file. Mounted read-only: every tool this server exposes is a read.",
+          "value": "{keepassxc_dir}:/kpx:ro",
+          "isRequired": true,
+          "variables": {
+            "keepassxc_dir": {
+              "description": "Absolute path to the KeePassXC directory, usually ~/.config/keepassxc",
+              "isRequired": true,
+              "format": "filepath"
+            }
+          }
+        },
+        {
+          "type": "named",
+          "name": "-w",
+          "description": "Run inside the mounted project so pointer discovery resolves.",
+          "value": "/work"
+        }
+      ],
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp",
+          "description": "kdbx is a CLI; the MCP server is its `mcp` subcommand."
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "KEEPASSXC_DIR",
+          "description": "Where kdbx looks for vaults inside the container. Must match the mount target above.",
+          "default": "/kpx"
+        },
+        {
+          "name": "KDBX_ENV",
+          "description": "Environment to select, overriding the pointer's defaultEnv. Optional.",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
