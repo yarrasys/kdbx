@@ -207,6 +207,38 @@ func (o *Object) Str(key string) string {
 	return s
 }
 
+// Has reports whether key exists at all, whatever its type.
+func (o *Object) Has(key string) bool {
+	if o == nil {
+		return false
+	}
+	_, ok := o.vals[key]
+	return ok
+}
+
+// Strs returns the string-array value at key. ok is false when the key is
+// absent or holds anything other than a JSON array of strings — callers that
+// treat the array as a security setting can distinguish "not configured"
+// (Has == false) from "configured but unreadable" (Has == true, ok == false)
+// and fail closed on the latter.
+func (o *Object) Strs(key string) (vals []string, ok bool) {
+	if o == nil {
+		return nil, false
+	}
+	raw, isRaw := o.vals[key].(json.RawMessage)
+	if !isRaw {
+		return nil, false
+	}
+	var out []string
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, false
+	}
+	if out == nil {
+		out = []string{}
+	}
+	return out, true
+}
+
 // SetString sets key to val, updating in place if the key already exists.
 func (o *Object) SetString(key, val string) {
 	if o.vals == nil {

@@ -52,6 +52,13 @@ func Changed(format string, args ...any) *Error { return newErr("VaultChanged", 
 // Preflight — bad input caught before touching the vault (exit 7).
 func Preflight(format string, args ...any) *Error { return newErr("Preflight", 7, format, args...) }
 
+// NotAllowed — the command is not in the pointer's run.allow list (exit 7,
+// same preflight class: refused before the vault is touched, but with its own
+// kind so a policy refusal is distinguishable from malformed input).
+func NotAllowed(format string, args ...any) *Error {
+	return newErr("NotAllowed", 7, format, args...)
+}
+
 // Runtime — anything else (exit 1).
 func Runtime(format string, args ...any) *Error { return newErr("Runtime", 1, format, args...) }
 

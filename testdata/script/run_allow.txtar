@@ -1,0 +1,75 @@
+exec kdbx init
+stdin secret.txt
+exec kdbx set api/openai --var OPENAI_API_KEY
+
+# without run.allow in the pointer, any command runs (the compatible default)
+exec kdbx run -- printenv-shim OPENAI_API_KEY
+stdout '^\*\*\*$'
+
+# switch to a pointer that pins run to an allowlist
+cp allow.json .keepassxc.json
+
+# a listed command runs
+exec kdbx run -- printenv-shim OPENAI_API_KEY
+stdout '^\*\*\*$'
+
+# an unlisted command is refused before the vault is opened, with its own kind
+! exec kdbx run -- exit-shim 0
+stderr 'kdbx: run failed: NotAllowed'
+! stdout 'exiting'
+
+# matching is exact argv, not prefix: extra arguments do not ride along
+! exec kdbx run -- printenv-shim OPENAI_API_KEY EXTRA
+stderr 'NotAllowed'
+
+# --any bypasses the list: a human affordance, denied to agents by the guard
+exec kdbx run --any -- exit-shim 0
+stdout '^exiting 0$'
+
+# an empty allowlist refuses everything without --any
+cp lockdown.json .keepassxc.json
+! exec kdbx run -- printenv-shim OPENAI_API_KEY
+stderr 'NotAllowed'
+exec kdbx run --any -- printenv-shim OPENAI_API_KEY
+stdout '^\*\*\*$'
+
+-- .keepassxc.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {}
+  }
+}
+-- allow.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {
+      "vars": {
+        "OPENAI_API_KEY": "api/openai"
+      },
+      "run": {
+        "allow": ["printenv-shim OPENAI_API_KEY"]
+      }
+    }
+  }
+}
+-- lockdown.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {
+      "vars": {
+        "OPENAI_API_KEY": "api/openai"
+      },
+      "run": {
+        "allow": []
+      }
+    }
+  }
+}
+-- secret.txt --
+sk-test-value

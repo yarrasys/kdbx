@@ -10,6 +10,17 @@ Versions are cut from a `v*` tag.
 
 ### Added
 
+- **The pointer can pin `run` to an allowlist**
+  ([#11](https://github.com/yarrasys/kdbx/issues/11)). An optional per-env
+  `run.allow` array in `.keepassxc.json` makes `run` refuse any command whose argv does not
+  exactly equal a listed entry (shell-split; no prefix matching, since a `pytest` prefix
+  would admit `pytest --pdb`). Refusal happens before the vault is opened and carries its
+  own kind, `NotAllowed` (exit 7). `--any` bypasses the list for ad hoc human use and is
+  denied to agents by the guard, like `--no-mask`. Absent list = no restriction; empty
+  list = nothing runs without `--any`; malformed list = error, never silently ignored.
+  Combined with the guard's pointer-write denial, an agent widening its own allowlist is
+  a visible diff on a tracked file rather than an invisible one-liner.
+
 - **`run` now masks injected values in captured child output**
   ([#14](https://github.com/yarrasys/kdbx/issues/14)). When a child stream is not a TTY (a
   pipe, an agent harness, a log), each injected value of 8 bytes or more is replaced with
