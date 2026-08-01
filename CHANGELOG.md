@@ -8,6 +8,20 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-01
+
+The launch-feedback release. Readers on r/AI_Agents demonstrated that "kdbx never prints a
+secret" was a property of the wrapper, not the system: `kdbx run -- env` printed every
+injected value, and the MCP server's `kdbx_run` did the same straight into a model
+transcript. This release closes the demonstrated leaks and adds an opt-in strict policy
+profile, designed under one honest constraint: an agent running as your uid cannot be
+*contained* by kdbx, so these features stop accidents and make tampering loud, and the docs
+say exactly that (see issue #11 for the full analysis).
+
+**Behavior change** (the minor-version bump): when `run`'s child output is captured rather
+than on a terminal, injected values now appear as `***`. Piped output that expected raw
+values needs `--no-mask`, which the guard reserves for humans.
+
 ### Added
 
 - **Policy modes: `standard` and `strict`**
@@ -242,7 +256,8 @@ which is now the frozen reference implementation.
   surfaced some open failures as the generic exit 1. Go implements the documented code.
   Scripts that branched on exit 1 for a missing or unreadable key file must branch on 3.
 
-[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.1.3...main
+[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.2.0...main
+[0.2.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.2.0
 [0.1.3]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.3
 [0.1.2]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.2
 [0.1.1]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.1
