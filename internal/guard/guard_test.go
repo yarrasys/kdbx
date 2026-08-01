@@ -69,6 +69,48 @@ func TestDecideAllowsKdbxAndKeepassxcCliTouchingVaultFiles(t *testing.T) {
 	}
 }
 
+func TestDecideBlocksPointerFileWrites(t *testing.T) {
+	for _, cmd := range []string{
+		"echo FOO=bar >> .keepassxc.json",
+		"echo '{}' > .keepassxc.json",
+		"echo x>>.keepassxc.json",
+		"cat template.json > sub/dir/.keepassxc.json",
+		"vim .keepassxc.json",
+		"nano .keepassxc.json",
+		"code .keepassxc.json",
+		"sed -i 's/dev/prod/' .keepassxc.json",
+		"sed -i.bak 's/dev/prod/' .keepassxc.json",
+		"perl -i -pe 's/a/b/' .keepassxc.json",
+		"cat allow.json | tee .keepassxc.json",
+		"mv other.json .keepassxc.json",
+		"cp /tmp/x .keepassxc.json",
+		"npm test && echo '{}' > .keepassxc.json",
+	} {
+		if got := Decide(cmd); got == "" {
+			t.Errorf("Decide(%q) allowed a pointer-file write", cmd)
+		} else if !strings.Contains(got, "human-only") {
+			t.Errorf("Decide(%q) = %q, want the role-guard wording", cmd, got)
+		}
+	}
+}
+
+func TestDecideAllowsPointerFileReads(t *testing.T) {
+	for _, cmd := range []string{
+		"cat .keepassxc.json",
+		"jq .envs .keepassxc.json",
+		"grep vault .keepassxc.json",
+		"git diff .keepassxc.json",
+		"sed 's/dev/prod/' .keepassxc.json",   // no -i: prints to stdout, a read
+		"kdbx init",                           // kdbx writes the pointer legitimately
+		"echo '{}' > other.json",              // redirection to a different file
+		"cp .keepassxc.json /tmp/backup.json", // pointer as source, not destination
+	} {
+		if got := Decide(cmd); got != "" {
+			t.Errorf("Decide(%q) denied a pointer-file read: %s", cmd, got)
+		}
+	}
+}
+
 func TestDecideInspectsEveryShellSegment(t *testing.T) {
 	if Decide("npm test && cat dev.kdbx") == "" {
 		t.Fatal("must inspect commands after &&")

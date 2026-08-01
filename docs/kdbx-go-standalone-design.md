@@ -224,7 +224,12 @@ Port of `plugins/kdbx/hooks/guard.py` `decide()` semantics as a built-in: reads 
 JSON on stdin, prints a `permissionDecision: deny` envelope (same wording) or nothing;
 **always exits 0 / fails open**. Blocks (a) agent-issued human-only ops (C10 list, incl.
 `get --reveal/--clip`), (b) non-kdbx programs touching `*.kdbx`/`*.keyx` or the KeePassXC
-config dir. Recognized invokers: `kdbx`, `kdbx.py`, `keepassxc-cli`, `keepassxc`, uv-run
+config dir, (c) shell writes to the committed pointer file `.keepassxc.json`: output
+redirection onto it, in-place editors (`sed -i`, `perl -i`), `tee`, interactive editors,
+and `mv`/`cp` with the pointer as destination. Pointer reads stay allowed (the file is
+committed and holds no secrets), and kdbx itself remains a recognized invoker so `init`
+and pointer rewrites through kdbx are unaffected. Detection is heuristic and fail-open by
+design. Recognized invokers: `kdbx`, `kdbx.py`, `keepassxc-cli`, `keepassxc`, uv-run
 forms (transition). Plugin v2's `hooks.json` invokes `kdbx guard --hook pretooluse`.
 
 ### N4. `kdbx completion [bash|zsh|fish|powershell]`
