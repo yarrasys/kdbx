@@ -8,6 +8,16 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+### Fixed
+
+- **MCP Registry publishing works now, and failures are loud.** The v0.2.0 release's
+  registry publish failed with a 400 (the registry no longer accepts `registryBaseUrl` on
+  OCI packages and wants a canonical `image:tag` identifier), and `continue-on-error` hid
+  it behind a green run, exactly the failure mode that step was flagged for. `server.json`
+  is now canonical, and publishing moved to its own `mcp-publish` workflow, triggered by
+  release publication and by manual dispatch, so a registry-side failure is a red run that
+  can be retried or backfilled without cutting a new tag.
+
 ## [0.2.0] - 2026-08-01
 
 The launch-feedback release. Readers on r/AI_Agents demonstrated that "kdbx never prints a

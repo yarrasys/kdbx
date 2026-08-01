@@ -1,0 +1,60 @@
+name: mcp-publish
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (no v prefix, e.g. 0.2.0). Defaults to the latest release."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# Publishes the MCP Registry entry. Split out of release.yml after v0.2.0:
+# the in-release step was continue-on-error (a directory listing must not fail
+# a release whose artifacts already published), which meant its first real
+# failure hid behind a green tick, and retrying meant cutting a new tag. Here
+# a failure is a red run on its own, and workflow_dispatch retries or
+# backfills a version without touching the release.
+#
+# GitHub OIDC proves ownership of the io.github.yarrasys namespace — no token
+# to mint or rotate, which is why this runs in Actions rather than a laptop.
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # mcp-publisher login github-oidc
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: publish server.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="${INPUT_VERSION#v}"
+          elif [ -n "$EVENT_TAG" ]; then
+            VERSION="${EVENT_TAG#v}"
+          else
+            VERSION="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq '.tagName' | sed 's/^v//')"
+          fi
+          echo "publishing version $VERSION"
+          # Keep the manifest in step with the version being published. The OCI
+          # identifier is canonical (image:tag); the registry rejects a
+          # registryBaseUrl field.
+          tmp=$(mktemp)
+          jq --arg v "$VERSION" \
+             '.version = $v
+              | (.packages[] | select(.registryType=="oci") | .identifier) = "ghcr.io/yarrasys/kdbx:" + $v
+              | (.packages[] | select(.registryType=="oci") | .version) = $v' \
+             server.json > "$tmp" && mv "$tmp" server.json
+          curl -sSL -o mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_amd64.tar.gz"
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
