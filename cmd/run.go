@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
+	"github.com/yarrasys/kdbx/internal/allowlist"
 	"github.com/yarrasys/kdbx/internal/kdbxerr"
 	"github.com/yarrasys/kdbx/internal/maskio"
 	"github.com/yarrasys/kdbx/internal/runner"
@@ -15,17 +16,19 @@ import (
 
 func init() {
 	registrars = append(registrars, func(root *cobra.Command) {
-		var allowMissing, noMask bool
+		var allowMissing, noMask, anyCmd bool
 		cmd := &cobra.Command{
-			Use:   "run [--allow-missing] [--no-mask] -- CMD [ARGS...]",
+			Use:   "run [--allow-missing] [--no-mask] [--any] -- CMD [ARGS...]",
 			Short: "Inject this environment's secrets and exec a command",
 			RunE: func(c *cobra.Command, args []string) error {
-				return runRun(c, args, allowMissing, noMask)
+				return runRun(c, args, allowMissing, noMask, anyCmd)
 			},
 		}
 		cmd.Flags().BoolVar(&allowMissing, "allow-missing", false, "skip vars that do not resolve")
 		cmd.Flags().BoolVar(&noMask, "no-mask", false,
 			"do not mask injected values in captured child output")
+		cmd.Flags().BoolVar(&anyCmd, "any", false,
+			"run a command that is not in the pointer's run.allow list")
 		cmd.Flags().SetInterspersed(false)
 		root.AddCommand(cmd)
 	})
@@ -37,7 +40,7 @@ type runExitCode struct{ code int }
 
 func (e *runExitCode) Error() string { return "" }
 
-func runRun(c *cobra.Command, args []string, allowMissing, noMask bool) error {
+func runRun(c *cobra.Command, args []string, allowMissing, noMask, anyCmd bool) error {
 	if len(args) > 0 && args[0] == "--" {
 		args = args[1:]
 	}
@@ -48,6 +51,23 @@ func runRun(c *cobra.Command, args []string, allowMissing, noMask bool) error {
 	if err != nil {
 		return err
 	}
+
+	// The pointer's run.allow list pins which commands may receive this
+	// environment's values (spec C5). Checked before the vault is touched:
+	// a refused command has no business opening it. --any bypasses for ad hoc
+	// human use; the guard denies --any for agents (N3).
+	if ctx.AllowSet && !anyCmd {
+		ok, err := allowlist.Match(ctx.Allow, args)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return kdbxerr.NotAllowed(
+				"kdbx run: command not in this env's run.allow list " +
+					"(add it to .keepassxc.json, or a human can pass --any)")
+		}
+	}
+
 	vals, _, err := vaultvars.Resolve(ctx, allowMissing)
 	if err != nil {
 		return err

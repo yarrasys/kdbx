@@ -28,6 +28,11 @@ type EnvPaths struct {
 	KeyFile  string
 	Vars     map[string]string
 	VarOrder []string
+	// Allow is the env's `run.allow` command list. AllowSet distinguishes an
+	// absent list (no restriction) from a present-but-empty one (nothing may
+	// run without --any).
+	Allow    []string
+	AllowSet bool
 }
 
 // Find walks up from startDir looking for the pointer file.
@@ -135,6 +140,17 @@ func (p *Pointer) ResolveEnv(env string) (EnvPaths, error) {
 			out.Vars[k] = vars.Str(k)
 			out.VarOrder = append(out.VarOrder, k)
 		}
+	}
+	if runCfg := cfg.Obj("run"); runCfg.Has("allow") {
+		allow, ok := runCfg.Strs("allow")
+		if !ok {
+			// A present-but-unreadable allowlist fails closed: silently
+			// treating it as "no restriction" would fail open on a security
+			// setting.
+			return EnvPaths{}, kdbxerr.Preflight(
+				"env '%s': run.allow must be an array of strings", env)
+		}
+		out.Allow, out.AllowSet = allow, true
 	}
 	return out, nil
 }

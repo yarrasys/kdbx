@@ -143,7 +143,7 @@ Operations marked ✦ print the banner `ACTIVE ENV: <env>  vault=<path>  (source
 | `list [GROUP]` | | sorted `group/…/title` lines, filtered by the `GROUP` prefix, Recycle Bin excluded; never prints values |
 | `delete PATH` ✦ | `--purge` | soft-deletes to the Recycle Bin by default; `--purge` prompts `y/N` (TTY only — a non-TTY refuses with exit 4) then removes permanently |
 | `mv SRC DST` ✦ | | moves or retitles an entry, creating destination groups; re-points the active environment's var mappings that referenced `SRC`, keeping any `:field` suffix; stderr `re-pointed N var mapping(s) …` |
-| `run` ✦ | `--allow-missing`, `--no-mask`, `-- CMD…` | resolves the active environment's `vars` map, injects it into the child's environment, resolves `argv[0]` through PATH (PATHEXT on Windows), forwards signals, and passes the child's exit code through; when a child stream is captured (not a TTY), injected values ≥ 8 bytes in it become `***` (`--no-mask` disables; the guard denies it for agents); no command → exit 2; an unresolved var → exit 5 unless `--allow-missing` |
+| `run` ✦ | `--allow-missing`, `--no-mask`, `--any`, `-- CMD…` | if the pointer has a `run.allow` list, refuses an unlisted command before the vault is even opened (exit 7, `NotAllowed`) unless `--any`; resolves the active environment's `vars` map, injects it into the child's environment, resolves `argv[0]` through PATH (PATHEXT on Windows), forwards signals, and passes the child's exit code through; when a child stream is captured (not a TTY), injected values ≥ 8 bytes in it become `***` (`--no-mask` disables; the guard denies it for agents); no command → exit 2; an unresolved var → exit 5 unless `--allow-missing` |
 | `export` ✦ | `--out FILE`, `--allow-missing` | renders the mappings as dotenv (always double-quoted; `\`, `"` and newlines escaped); `--out` writes atomically at 0600 with a gitignore reminder, otherwise stdout |
 | `import FILE` ✦ | | parses a dotenv file (no `$VAR` interpolation), stores each `KEY` at `imported/KEY` and registers the mapping; stderr reminds you to delete or rotate the source file |
 | `check` | | prints `MISSING VAR -> path` per broken mapping; exit 0 when clean, 5 on drift |
@@ -235,7 +235,12 @@ anything that can read the key file can open the vault, whoever or whatever it i
 split is enforced in harnesses that support hooks, by `kdbx guard`, and it is advisory
 everywhere else.
 
-Nor does anything bind the *child* command. `run` injects into whatever argv it is handed.
+The *child* command can be pinned, if you choose to. A committed `run.allow` list in
+`.keepassxc.json` makes `run` refuse any argv not exactly on the list (a human can pass
+`--any`; the guard denies it for agents). Be clear-eyed about what that buys: the agent can
+still edit the pointer in principle, but the guard blocks the obvious edits and the change
+is a visible diff on a tracked file instead of an invisible one-liner. Without a list,
+`run` injects into whatever argv it is handed.
 When the output is captured (a pipe, an agent harness, a log), injected values in it are
 replaced with `***` — so `kdbx run -- env` shows masks, not values, exactly where the bytes
 were headed for a transcript. A terminal gets raw output, and `--no-mask` (denied to agents

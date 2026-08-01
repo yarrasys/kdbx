@@ -88,7 +88,12 @@ two disagree, the **documented** contract wins (one known case: exit 3, see §C6
 - Schema (unchanged): `project` (string, optional — defaults to pointer-dir name),
   `defaultEnv` (string, optional — defaults to `"dev"`), `envs.<name>` with optional
   `vault`, `keyFile` (paths; support `${KEEPASSXC_DIR}` token, then `~` expansion, then
-  absolutize) and optional `vars` (map ENV_VAR → entry path).
+  absolutize) and optional `vars` (map ENV_VAR → entry path). Optional
+  `run.allow` (array of command strings): when present, `run` only injects for an argv that
+  exactly equals one of the entries after shell-splitting (no prefix matching — a `pytest`
+  prefix would admit `pytest --pdb`, a REPL holding the secrets). Absent = no restriction;
+  present-but-empty = nothing runs without `--any`; present-but-malformed = Preflight error
+  (fail closed). `--any` bypasses the list and is denied to agents by the guard (N3).
 - Default paths when `vault`/`keyFile` are omitted:
   `<keepassxc-dir>/<project>/<env>.kdbx` and `<env>.keyx`, where keepassxc-dir =
   `$KEEPASSXC_DIR` if set, else `%LOCALAPPDATA%\keepassxc` (Windows), else
@@ -142,7 +147,7 @@ All ops accept `--env E`. "Banner" = `ACTIVE ENV: <env>  vault=<path>  (source: 
 | `list [GROUP]` | | sorted `group/…/title` lines, prefix-filtered by GROUP, Recycle Bin excluded; never values |
 | `delete PATH` ✦ | `--purge` | default soft-delete to Recycle Bin; `--purge` prompts `y/N` (TTY only — non-TTY refuses, exit 4) then removes permanently |
 | `mv SRC DST` ✦ | | move/retitle entry (create dest groups); re-point active env's var mappings that reference SRC, preserving `:field` suffix; stderr `re-pointed N var mapping(s) …` when any |
-| `run` ✦ | `--allow-missing`, `--no-mask`, `-- CMD…` | resolve active env's vars map → inject into child env (parent env + overrides); resolve argv[0] via PATH lookup (Windows PATHEXT — the `shutil.which` lesson); spawn, wait, **pass through child exit code**; a child stream that is not a TTY has injected values (≥ 8 bytes) replaced with `***` on the way through — exact-match only, longest-first, chunking-invariant (`internal/maskio`); a TTY stream keeps the raw fd so interactive children are untouched; `--no-mask` disables masking and is denied to agents by the guard (N3); no command → exit 2; unresolved var → exit 5 unless `--allow-missing` |
+| `run` ✦ | `--allow-missing`, `--no-mask`, `--any`, `-- CMD…` | when the pointer has `run.allow` (C1), refuse an unlisted argv **before opening the vault** — kind `NotAllowed`, exit 7 — unless `--any`; resolve active env's vars map → inject into child env (parent env + overrides); resolve argv[0] via PATH lookup (Windows PATHEXT — the `shutil.which` lesson); spawn, wait, **pass through child exit code**; a child stream that is not a TTY has injected values (≥ 8 bytes) replaced with `***` on the way through — exact-match only, longest-first, chunking-invariant (`internal/maskio`); a TTY stream keeps the raw fd so interactive children are untouched; `--no-mask` disables masking and is denied to agents by the guard (N3); no command → exit 2; unresolved var → exit 5 unless `--allow-missing` |
 | `export` ✦ | `--out F`, `--allow-missing` | render vars as dotenv (always double-quoted; escape `\\`, `\"`, `\n`); `--out`: atomic 0600 write + gitignore reminder; else stdout |
 | `import FILE` ✦ | | parse dotenv (no interpolation); each KEY stored at `imported/KEY:password` + var mapping; stderr reminder to remove/rotate the source |
 | `check` | | per missing mapping: stdout `MISSING VAR -> path`; exit 0 clean / 5 drift |
@@ -156,7 +161,8 @@ Removed: `install-launcher` (D5). Global: `--version` → `kdbx <semver>`.
 `0` ok · `1` generic scrubbed failure · `2` not-found (pointer/env/entry/field/no-command)
 · `3` locked / keyfile-missing / credential failure · `4` destructive op not confirmed ·
 `5` drift (check / unresolved run|export var) · `6` vault changed underneath a write ·
-`7` preflight (e.g. invalid `--var` name). ⚠️ Known Python deviation: some open-failures
+`7` preflight (e.g. invalid `--var` name; also `run` refused by `run.allow`, which carries
+its own kind `NotAllowed` so a policy refusal is distinguishable from malformed input). ⚠️ Known Python deviation: some open-failures
 surface as 1 instead of the documented 3; **Go implements the documented 3** and the parity
 harness asserts documented codes, not incidental Python behavior.
 
@@ -223,8 +229,8 @@ client. No write tools — the roles contract (C10) applies to machines too.
 Port of `plugins/kdbx/hooks/guard.py` `decide()` semantics as a built-in: reads PreToolUse
 JSON on stdin, prints a `permissionDecision: deny` envelope (same wording) or nothing;
 **always exits 0 / fails open**. Blocks (a) agent-issued human-only ops (C10 list, incl.
-`get --reveal/--clip` and `run --no-mask` — flags after `run`'s `--` belong to the child
-and are ignored), (b) non-kdbx programs touching `*.kdbx`/`*.keyx` or the KeePassXC
+`get --reveal/--clip`, `run --no-mask` and `run --any` — flags after `run`'s `--` belong to
+the child and are ignored), (b) non-kdbx programs touching `*.kdbx`/`*.keyx` or the KeePassXC
 config dir, (c) shell writes to the committed pointer file `.keepassxc.json`: output
 redirection onto it, in-place editors (`sed -i`, `perl -i`), `tee`, interactive editors,
 and `mv`/`cp` with the pointer as destination. Pointer reads stay allowed (the file is

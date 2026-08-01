@@ -265,3 +265,61 @@ func TestFindResolvesSymlinksSoProjectNameMatchesPython(t *testing.T) {
 		t.Fatalf("project = %q, want the real directory name %q", got, "myrepo")
 	}
 }
+
+func TestResolveEnvReadsRunAllow(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("KEEPASSXC_DIR", filepath.Join(dir, "kpxc"))
+	p, _ := Load(writePointer(t, dir,
+		`{"project":"x","envs":{"dev":{"run":{"allow":["npm test","pytest -q"]}}}}`))
+
+	ep, err := p.ResolveEnv("dev")
+	if err != nil {
+		t.Fatalf("ResolveEnv: %v", err)
+	}
+	if !ep.AllowSet {
+		t.Fatal("AllowSet false with run.allow present")
+	}
+	if len(ep.Allow) != 2 || ep.Allow[0] != "npm test" || ep.Allow[1] != "pytest -q" {
+		t.Fatalf("Allow %v", ep.Allow)
+	}
+}
+
+func TestResolveEnvAllowAbsentMeansUnset(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("KEEPASSXC_DIR", filepath.Join(dir, "kpxc"))
+	p, _ := Load(writePointer(t, dir, `{"project":"x","envs":{"dev":{}}}`))
+
+	ep, err := p.ResolveEnv("dev")
+	if err != nil {
+		t.Fatalf("ResolveEnv: %v", err)
+	}
+	if ep.AllowSet || ep.Allow != nil {
+		t.Fatalf("absent run.allow must be unset, got set=%v %v", ep.AllowSet, ep.Allow)
+	}
+}
+
+func TestResolveEnvEmptyAllowIsSetAndEmpty(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("KEEPASSXC_DIR", filepath.Join(dir, "kpxc"))
+	p, _ := Load(writePointer(t, dir, `{"project":"x","envs":{"dev":{"run":{"allow":[]}}}}`))
+
+	ep, err := p.ResolveEnv("dev")
+	if err != nil {
+		t.Fatalf("ResolveEnv: %v", err)
+	}
+	if !ep.AllowSet || len(ep.Allow) != 0 {
+		t.Fatalf("empty run.allow must be set+empty, got set=%v %v", ep.AllowSet, ep.Allow)
+	}
+}
+
+func TestResolveEnvMalformedAllowFailsClosed(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("KEEPASSXC_DIR", filepath.Join(dir, "kpxc"))
+	p, _ := Load(writePointer(t, dir, `{"project":"x","envs":{"dev":{"run":{"allow":[42]}}}}`))
+
+	// A present-but-unreadable allowlist must be an error, not silently
+	// "no restriction": that would fail open on a security setting.
+	if _, err := p.ResolveEnv("dev"); err == nil {
+		t.Fatal("malformed run.allow resolved without error")
+	}
+}

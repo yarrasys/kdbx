@@ -247,6 +247,9 @@ func blockedKdbxOp(tokens []string) string {
 			if t == "--no-mask" {
 				return "run --no-mask"
 			}
+			if t == "--any" {
+				return "run --any"
+			}
 		}
 	}
 	return ""
