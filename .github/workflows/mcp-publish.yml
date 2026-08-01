@@ -1,7 +1,11 @@
 name: mcp-publish
 on:
-  release:
-    types: [published]
+  # Dispatch-only, deliberately. A `release: published` trigger would never
+  # fire here: GoReleaser creates the release with the workflow's GITHUB_TOKEN,
+  # and token-created events do not trigger other workflows (GitHub's
+  # recursion guard). Verified on v0.2.1: the release published and no run
+  # appeared. Publishing to the registry is therefore an explicit post-release
+  # step: gh workflow run mcp-publish.yml -f version=X.Y.Z
   workflow_dispatch:
     inputs:
       version:
@@ -16,8 +20,11 @@ permissions:
 # the in-release step was continue-on-error (a directory listing must not fail
 # a release whose artifacts already published), which meant its first real
 # failure hid behind a green tick, and retrying meant cutting a new tag. Here
-# a failure is a red run on its own, and workflow_dispatch retries or
-# backfills a version without touching the release.
+# a failure is a red run on its own, and a version can be retried or
+# backfilled without touching the release. The registry validates more than
+# the published schema does (canonical OCI identifier, no version field, a
+# server-name label baked into the image), so this workflow is the only real
+# preflight.
 #
 # GitHub OIDC proves ownership of the io.github.yarrasys namespace — no token
 # to mint or rotate, which is why this runs in Actions rather than a laptop.
@@ -33,13 +40,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           INPUT_VERSION: ${{ inputs.version }}
-          EVENT_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           if [ -n "$INPUT_VERSION" ]; then
             VERSION="${INPUT_VERSION#v}"
-          elif [ -n "$EVENT_TAG" ]; then
-            VERSION="${EVENT_TAG#v}"
           else
             VERSION="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq '.tagName' | sed 's/^v//')"
           fi
