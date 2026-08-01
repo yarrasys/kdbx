@@ -59,6 +59,13 @@ func NotAllowed(format string, args ...any) *Error {
 	return newErr("NotAllowed", 7, format, args...)
 }
 
+// PolicyDrift — the pointer's policy does not match the hash blessed into the
+// vault (exit 5, the drift class: pointer and vault disagree, a human must
+// reconcile with `kdbx policy bless`).
+func PolicyDrift(format string, args ...any) *Error {
+	return newErr("PolicyDrift", 5, format, args...)
+}
+
 // Runtime — anything else (exit 1).
 func Runtime(format string, args ...any) *Error { return newErr("Runtime", 1, format, args...) }
 

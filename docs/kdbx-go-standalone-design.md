@@ -94,6 +94,8 @@ two disagree, the **documented** contract wins (one known case: exit 3, see §C6
   prefix would admit `pytest --pdb`, a REPL holding the secrets). Absent = no restriction;
   present-but-empty = nothing runs without `--any`; present-but-malformed = Preflight error
   (fail closed). `--any` bypasses the list and is denied to agents by the guard (N3).
+  Optional `policy.mode` (`"standard"` or `"strict"`): the env's policy profile, see N6.
+  Unknown modes are a Preflight error, fail closed.
 - Default paths when `vault`/`keyFile` are omitted:
   `<keepassxc-dir>/<project>/<env>.kdbx` and `<env>.keyx`, where keepassxc-dir =
   `$KEEPASSXC_DIR` if set, else `%LOCALAPPDATA%\keepassxc` (Windows), else
@@ -141,7 +143,7 @@ All ops accept `--env E`. "Banner" = `ACTIVE ENV: <env>  vault=<path>  (source: 
 
 | Op | Flags | Behavior (stdout / stderr / exit) |
 |----|-------|------------------------------------|
-| `init` ✦ | | create vault+keyfile; stderr `created <vault>` + KEYFILE backup warning; exists → refuse (≠0) |
+| `init` ✦ | `--mode standard\|strict` (N6) | create vault+keyfile; `--mode` records the policy in the pointer, and strict anchors it into the new vault; stderr `created <vault>` + KEYFILE backup warning; exists → refuse (≠0) |
 | `set PATH` ✦ | `--var NAME`, `--from-env VAR`, `--raw` | value via `--from-env`, else getpass+confirm (TTY), else stdin (empty → error exit 1; strip one trailing `\n`/`\r\n` unless `--raw`); empty/whitespace value refused; `--var` updates pointer vars map (C1) |
 | `get PATH` | `--reveal` \| `--clip` (mutually exclusive) | default: stdout `(set, hidden)` (the MASK constant — no length/prefix leak); `--reveal`: value on stdout + stderr warning; `--clip`: copy + auto-clear ≈15 s, stderr `copied to clipboard (clears shortly)`; entry/field missing → exit 2 |
 | `list [GROUP]` | | sorted `group/…/title` lines, prefix-filtered by GROUP, Recycle Bin excluded; never values |
@@ -229,8 +231,8 @@ client. No write tools — the roles contract (C10) applies to machines too.
 Port of `plugins/kdbx/hooks/guard.py` `decide()` semantics as a built-in: reads PreToolUse
 JSON on stdin, prints a `permissionDecision: deny` envelope (same wording) or nothing;
 **always exits 0 / fails open**. Blocks (a) agent-issued human-only ops (C10 list, incl.
-`get --reveal/--clip`, `run --no-mask` and `run --any` — flags after `run`'s `--` belong to
-the child and are ignored), (b) non-kdbx programs touching `*.kdbx`/`*.keyx` or the KeePassXC
+`get --reveal/--clip`, `run --no-mask`, `run --any` and `policy bless` — flags after `run`'s
+`--` belong to the child and are ignored), (b) non-kdbx programs touching `*.kdbx`/`*.keyx` or the KeePassXC
 config dir, (c) shell writes to the committed pointer file `.keepassxc.json`: output
 redirection onto it, in-place editors (`sed -i`, `perl -i`), `tee`, interactive editors,
 and `mv`/`cp` with the pointer as destination. Pointer reads stay allowed (the file is
@@ -242,6 +244,35 @@ forms (transition). Plugin v2's `hooks.json` invokes `kdbx guard --hook pretoolu
 ### N4. `kdbx completion [bash|zsh|fish|powershell]`
 
 Cobra-generated completions; documented in README and brew formula.
+
+### N6. Policy modes — `standard` and `strict`
+
+Per-env `policy.mode` in the pointer (C1): absent or `"standard"` is today's behavior plus
+masking (C5); `"strict"` is the locked-down profile, chosen at `init --mode strict` — the one
+moment the human is definitely the one typing. An unrecognized mode is a Preflight error,
+never silently standard.
+
+Strict, enforced identically on the CLI `run` and the MCP `kdbx_run` (both go through
+`internal/runpolicy`):
+
+- a `run.allow` list (C1) is **required**; without one every run is refused (`NotAllowed`).
+- `--no-mask` and `--any` are refused outright, before the guard is even consulted.
+- **Audit**: every decision appends one line to `<vault>.audit.log` (next to the vault,
+  0600, append-only): RFC3339 timestamp, `run`/`refused`, the argv, the injected variable
+  **names**. Never a value — the API cannot express one. If the audit line cannot be
+  written, the run is refused: a full disk does not silence the trail.
+- **Anchor**: injection is gated on a vault-anchored policy hash. `kdbx policy bless`
+  (human-only: TTY-confirmed like `rekey`, denied to agents by the guard) stores the hex
+  SHA-256 of the env's `policy` + `run` pointer subobjects (as stored in the file; `vars`
+  and paths deliberately excluded so `set --var` does not invalidate an anchor) in vault
+  meta custom data under `kdbx:policy:<env>`. `run` verifies on the same vault open that
+  reads the values; mismatch or missing anchor is `PolicyDrift` (exit 5). `init --mode
+  strict` anchors at create time so a fresh env works without a separate bless.
+
+The honest claim, which the README repeats: vault writes are human-role operations, so a
+casual or prompt-injected policy edit is refused at the next run instead of silently
+obeyed. A determined same-uid agent can still write the vault with its own code; no
+boundary is claimed. See issue #11 for the full analysis.
 
 ## Architecture
 

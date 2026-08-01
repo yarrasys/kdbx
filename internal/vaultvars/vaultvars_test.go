@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/yarrasys/kdbx/internal/envctx"
+	"github.com/yarrasys/kdbx/internal/kdbxerr"
 	"github.com/yarrasys/kdbx/internal/vault"
 )
 
@@ -36,7 +37,7 @@ func TestResolveReturnsValuesInPointerOrder(t *testing.T) {
 	if err := vault.SetField(ctx.Vault, ctx.KeyFile, []string{"api"}, "alpha", "password", "a"); err != nil {
 		t.Fatal(err)
 	}
-	vals, order, err := Resolve(ctx, false)
+	vals, order, err := Resolve(ctx, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +51,7 @@ func TestResolveReturnsValuesInPointerOrder(t *testing.T) {
 
 func TestResolveUnresolvedIsDrift(t *testing.T) {
 	ctx := setup(t, `{"MISSING":"api/absent:password"}`)
-	if _, _, err := Resolve(ctx, false); err == nil {
+	if _, _, err := Resolve(ctx, false, nil); err == nil {
 		t.Fatal("expected Drift for an unresolved mapping")
 	}
 }
@@ -60,7 +61,7 @@ func TestResolveAllowMissingSkipsUnresolved(t *testing.T) {
 	if err := vault.SetField(ctx.Vault, ctx.KeyFile, []string{"api"}, "there", "password", "v"); err != nil {
 		t.Fatal(err)
 	}
-	vals, order, err := Resolve(ctx, true)
+	vals, order, err := Resolve(ctx, true, nil)
 	if err != nil {
 		t.Fatalf("allowMissing should not fail: %v", err)
 	}
@@ -69,5 +70,37 @@ func TestResolveAllowMissingSkipsUnresolved(t *testing.T) {
 	}
 	if len(order) != 1 || order[0] != "PRESENT" {
 		t.Fatalf("order %v", order)
+	}
+}
+
+func TestResolveVerifiesAnchor(t *testing.T) {
+	ctx := setup(t, `{"API_KEY":"api/openai:password"}`)
+	if err := vault.SetField(ctx.Vault, ctx.KeyFile,
+		[]string{"api"}, "openai", "password", "fake-value"); err != nil {
+		t.Fatal(err)
+	}
+	key := "kdbx:policy:dev"
+
+	// No anchor in the vault yet: strict resolution refuses.
+	if _, _, err := Resolve(ctx, false, &Anchor{Key: key, Want: "abc"}); err == nil {
+		t.Fatal("missing anchor resolved without error")
+	} else if kdbxerr.KindOf(err) != "PolicyDrift" {
+		t.Fatalf("kind %s, want PolicyDrift", kdbxerr.KindOf(err))
+	}
+
+	if err := vault.SetCustomData(ctx.Vault, ctx.KeyFile, key, "abc"); err != nil {
+		t.Fatal(err)
+	}
+	// Matching anchor: values resolve.
+	if _, _, err := Resolve(ctx, false, &Anchor{Key: key, Want: "abc"}); err != nil {
+		t.Fatalf("matching anchor refused: %v", err)
+	}
+	// Mismatched anchor: refused, and no values escape.
+	vals, _, err := Resolve(ctx, false, &Anchor{Key: key, Want: "other"})
+	if err == nil || kdbxerr.KindOf(err) != "PolicyDrift" {
+		t.Fatalf("mismatch: vals=%v err=%v", vals, err)
+	}
+	if vals != nil {
+		t.Fatal("values returned alongside a PolicyDrift refusal")
 	}
 }

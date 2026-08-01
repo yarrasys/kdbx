@@ -38,6 +38,23 @@ func mutate(vaultPath, keyPath string, fn func(h *Handle) error) error {
 	})
 }
 
+// SetCustomData stores value under key in the vault's meta custom data,
+// replacing an existing key. Same locked read-modify-write as every other
+// vault mutation.
+func SetCustomData(vaultPath, keyPath, key, value string) error {
+	return mutate(vaultPath, keyPath, func(h *Handle) error {
+		meta := h.db.Content.Meta
+		for i := range meta.CustomData {
+			if meta.CustomData[i].Key == key {
+				meta.CustomData[i].Value = value
+				return nil
+			}
+		}
+		meta.CustomData = append(meta.CustomData, gokeepasslib.CustomData{Key: key, Value: value})
+		return nil
+	})
+}
+
 // SetField stores value at the given entry+field, creating groups and the entry
 // as needed. Non-reserved fields become protected custom properties.
 func SetField(vaultPath, keyPath string, groupPath []string, title, field, value string) error {

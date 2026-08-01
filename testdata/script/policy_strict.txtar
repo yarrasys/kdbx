@@ -1,0 +1,70 @@
+# init --mode strict records the policy in the pointer and anchors its hash
+# into the freshly created vault, so no separate bless is needed to start
+exec kdbx init --mode strict
+stderr 'policy: strict'
+stderr 'blessed policy for env .dev.'
+stdin secret.txt
+exec kdbx set api/openai --var OPENAI_API_KEY
+
+# strict without an allowlist refuses every run, and audits the refusal
+! exec kdbx run -- printenv-shim OPENAI_API_KEY
+stderr 'kdbx: run failed: NotAllowed'
+grep 'refused' $WORK/kpxc/demo/dev.kdbx.audit.log
+
+# an out-of-band pointer edit (what an agent would do) adds an allowlist,
+# but the anchor no longer matches: refused until a human re-blesses
+cp strict-with-allow.json .keepassxc.json
+! exec kdbx run -- printenv-shim OPENAI_API_KEY
+stderr 'kdbx: run failed: PolicyDrift'
+
+# bless is the human approval act (interactive; --yes is the test hook)
+exec kdbx policy bless --yes
+stderr 'blessed policy'
+
+# now the listed command runs, masked as always, and the audit log records
+# the command and the injected variable names
+exec kdbx run -- printenv-shim OPENAI_API_KEY
+stdout '^\*\*\*$'
+grep 'run\tprintenv-shim OPENAI_API_KEY\tOPENAI_API_KEY' $WORK/kpxc/demo/dev.kdbx.audit.log
+
+# the audit log never carries a value
+! grep 'sk-test-value' $WORK/kpxc/demo/dev.kdbx.audit.log
+
+# strict refuses the escape hatches outright, allowlisted or not
+! exec kdbx run --any -- printenv-shim OPENAI_API_KEY
+stderr 'NotAllowed'
+! exec kdbx run --no-mask -- printenv-shim OPENAI_API_KEY
+stderr 'NotAllowed'
+
+# an unlisted command is still refused (and audited)
+! exec kdbx run -- exit-shim 0
+stderr 'NotAllowed'
+
+-- .keepassxc.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {}
+  }
+}
+-- strict-with-allow.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {
+      "policy": {
+        "mode": "strict"
+      },
+      "vars": {
+        "OPENAI_API_KEY": "api/openai"
+      },
+      "run": {
+        "allow": ["printenv-shim OPENAI_API_KEY"]
+      }
+    }
+  }
+}
+-- secret.txt --
+sk-test-value

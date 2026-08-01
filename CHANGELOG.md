@@ -10,6 +10,24 @@ Versions are cut from a `v*` tag.
 
 ### Added
 
+- **Policy modes: `standard` and `strict`**
+  ([#11](https://github.com/yarrasys/kdbx/issues/11)). `kdbx init --mode strict` opts an
+  environment into the locked-down profile, recorded as `policy.mode` in the pointer.
+  Strict requires the `run.allow` list, refuses `--any`/`--no-mask` outright, appends an
+  audit line for every run decision (timestamp, command, injected variable names — never
+  values — to `<vault>.audit.log`, 0600), and gates injection on a policy hash anchored in
+  the vault's custom data. `kdbx policy bless` is the human approval act that writes the
+  anchor: interactive-only like `rekey`, denied to agents by the guard. An out-of-band edit
+  to the policy or allowlist is refused at the next `run` (`PolicyDrift`, exit 5) instead of
+  silently obeyed. Anchored vaults verified compatible with `keepassxc-cli` 2.7.12,
+  including surviving a KeePassXC-side write; see `docs/spike-notes.md`.
+- **The MCP server's `kdbx_run` now goes through the same gate as the CLI** and always
+  masks. Previously it returned raw captured output to the model, so `kdbx_run` with
+  command `env` leaked every injected value into the transcript with no allowlist, no
+  policy, and no masking, while its description claimed secrets were never printed. The
+  shared gate lives in `internal/runpolicy`, so the two surfaces cannot drift; the MCP path
+  has no escape hatches at all.
+
 - **The pointer can pin `run` to an allowlist**
   ([#11](https://github.com/yarrasys/kdbx/issues/11)). An optional per-env
   `run.allow` array in `.keepassxc.json` makes `run` refuse any command whose argv does not

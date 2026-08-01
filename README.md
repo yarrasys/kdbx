@@ -137,7 +137,8 @@ Operations marked ✦ print the banner `ACTIVE ENV: <env>  vault=<path>  (source
 
 | Op | Flags | Behavior (stdout / stderr / exit) |
 |----|-------|------------------------------------|
-| `init` ✦ | | create vault + key file; stderr `created <vault>` plus a KEYFILE backup warning; refuses to overwrite an existing vault or key file |
+| `init` ✦ | `--mode standard\|strict` | create vault + key file; stderr `created <vault>` plus a KEYFILE backup warning; refuses to overwrite an existing vault or key file; `--mode` records the env's policy in the pointer, and `strict` anchors it into the new vault |
+| `policy bless` ✦ | | anchor the pointer's current policy (its `policy` and `run.allow` sections) into the vault; interactive-only, like `rekey`, and denied to agents by the guard; strict `run` refuses until the anchor matches |
 | `set PATH` ✦ | `--var NAME`, `--from-env VAR`, `--raw` | value from `--from-env`, else an interactive prompt with confirmation on a TTY, else stdin (empty → error; one trailing newline stripped unless `--raw`); an empty or whitespace-only value is refused; `--var` adds the mapping to the pointer file |
 | `get PATH` | `--reveal` \| `--clip` | default: prints `(set, hidden)` — no length or prefix leak; `--reveal` prints the value with a stderr warning; `--clip` copies it and auto-clears after ~15 s; missing entry or field → exit 2 |
 | `list [GROUP]` | | sorted `group/…/title` lines, filtered by the `GROUP` prefix, Recycle Bin excluded; never prints values |
@@ -241,6 +242,16 @@ The *child* command can be pinned, if you choose to. A committed `run.allow` lis
 still edit the pointer in principle, but the guard blocks the obvious edits and the change
 is a visible diff on a tracked file instead of an invisible one-liner. Without a list,
 `run` injects into whatever argv it is handed.
+
+For an environment that deserves ceremony (production, real customer credentials), there is
+**strict mode**: `kdbx init --mode strict`. Strict requires the allowlist, refuses `--any`
+and `--no-mask` outright, writes an audit line for every decision (command and variable
+*names*, never values, to a 0600 file next to the vault), and gates injection on a policy
+hash blessed into the vault with `kdbx policy bless` — a human-only, interactive command.
+An out-of-band edit to the policy is refused at the next `run` instead of silently obeyed.
+The same rules apply to the MCP server's `kdbx_run`, which additionally always masks and
+has no escape hatches at all. A determined agent with your uid can still defeat all of
+this; what strict changes is that quiet tampering becomes loud.
 When the output is captured (a pipe, an agent harness, a log), injected values in it are
 replaced with `***` — so `kdbx run -- env` shows masks, not values, exactly where the bytes
 were headed for a transcript. A terminal gets raw output, and `--no-mask` (denied to agents
