@@ -19,20 +19,28 @@ stdout 'prod'
 ! exec kdbx init --here
 stderr 'kdbx: init failed: Preflight'
 
-# plain init from a nested dir still binds to the discovered project (the
-# cloned-monorepo case) and now says so, naming the escape hatch
+# plain init from a nested dir binds to the discovered parent project (the
+# cloned-monorepo case). That is ambiguous enough to require confirmation:
+# without a TTY (or --yes) it refuses before creating anything
 cd $WORK
 mkdir sub2
 cd sub2
-exec kdbx init
+! exec kdbx init
 stderr 'note: .*sub2 has no pointer of its own'
 stderr 'kdbx init --here'
+stderr 'kdbx: init failed: NotConfirmed'
+! exists $WORK/kpxc/demo/dev.kdbx
+! exists .keepassxc.json
+
+# confirmed (test hook), it proceeds against the parent project
+exec kdbx init --yes
+stderr 'note: .*sub2 has no pointer of its own'
 exists $WORK/kpxc/demo/dev.kdbx
 ! exists .keepassxc.json
 
-# with the parent vault now existing, the same plain init fails as before,
+# with the parent vault now existing, a confirmed init fails as before,
 # still carrying the notice so the failure explains itself
-! exec kdbx init
+! exec kdbx init --yes
 stderr 'kdbx init --here'
 stderr 'kdbx: init failed: Preflight'
 

@@ -15,9 +15,11 @@ Versions are cut from a `v*` tag.
   environments, `dev` active) and creates the vault in one step; plain `kdbx init` does the
   same when there is no pointer anywhere above, a path that could previously only fail.
   Inside another project's tree, plain `init` keeps targeting that project (the
-  cloned-repo case) but now prints a note naming it and pointing at `--here`, so the
-  walk-up trap explains itself instead of dying with a bare `Preflight`. This bit three
-  real projects in two weeks; the tool was the right place to fix it.
+  cloned-repo case) but now names the pointer file it is about to use and asks for
+  confirmation before creating anything, TTY only, refusing with exit 4 otherwise, the
+  same consent pattern as `rekey`. The note points at `--here`, so the walk-up trap
+  explains itself instead of dying with a bare `Preflight`. This bit three real projects
+  in two weeks; the tool was the right place to fix it.
 
 ## [0.2.1] - 2026-08-01
 
