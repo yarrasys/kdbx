@@ -26,7 +26,7 @@ to accidentally commit.
 
 ```sh
 # curl installer — downloads the release archive, verifies its SHA-256, installs to
-# ~/.local/bin (override with KDBX_INSTALL_DIR; pin with KDBX_VERSION=v0.3.0)
+# ~/.local/bin (override with KDBX_INSTALL_DIR; pin with KDBX_VERSION=v0.3.1)
 curl -LsSf https://raw.githubusercontent.com/yarrasys/kdbx/main/install.sh | sh
 ```
 
