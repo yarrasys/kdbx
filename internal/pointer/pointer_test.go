@@ -382,3 +382,42 @@ func TestPolicyHashCoversPolicyAndRun(t *testing.T) {
 		t.Fatal("allowlist change did not change the policy hash")
 	}
 }
+
+func TestBootstrapCreatesAMinimalPointer(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "myproj")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	p, err := Bootstrap(dir)
+	if err != nil {
+		t.Fatalf("Bootstrap: %v", err)
+	}
+	if p.Project() != "myproj" {
+		t.Fatalf("project %q, want myproj", p.Project())
+	}
+	if env, src := p.SelectEnv(""); env != "dev" || src != "pointer" {
+		t.Fatalf("default env %q (%s), want dev (pointer)", env, src)
+	}
+	names := p.EnvNames()
+	if len(names) != 2 || names[0] != "dev" || names[1] != "prod" {
+		t.Fatalf("envs %v, want [dev prod]", names)
+	}
+	// The file it wrote must be loadable and identical in meaning.
+	p2, err := Load(filepath.Join(dir, Name))
+	if err != nil {
+		t.Fatalf("re-Load: %v", err)
+	}
+	if p2.Project() != "myproj" {
+		t.Fatalf("re-loaded project %q", p2.Project())
+	}
+}
+
+func TestBootstrapRefusesAnExistingPointer(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, Name), []byte(`{"project":"x"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Bootstrap(dir); err == nil {
+		t.Fatal("Bootstrap overwrote an existing pointer")
+	}
+}

@@ -1,0 +1,64 @@
+# --here bootstraps a new project in cwd even though a parent pointer exists:
+# the exact trap this flag exists for (spec C5). The new project's name is the
+# directory name, and the active env's vault is created in one step.
+mkdir sub
+cd sub
+exec kdbx init --here
+stderr 'created .keepassxc.json — review and commit'
+stderr 'ACTIVE ENV: dev'
+exists .keepassxc.json
+exists $WORK/kpxc/sub/dev.kdbx
+exists $WORK/kpxc/sub/dev.keyx
+
+# the bootstrapped pointer carries dev and prod, dev active by default
+exec kdbx envs
+stdout '\* dev'
+stdout 'prod'
+
+# a second --here in the same directory refuses: already a project
+! exec kdbx init --here
+stderr 'kdbx: init failed: Preflight'
+
+# plain init from a nested dir still binds to the discovered project (the
+# cloned-monorepo case) and now says so, naming the escape hatch
+cd $WORK
+mkdir sub2
+cd sub2
+exec kdbx init
+stderr 'note: .*sub2 has no pointer of its own'
+stderr 'kdbx init --here'
+exists $WORK/kpxc/demo/dev.kdbx
+! exists .keepassxc.json
+
+# with the parent vault now existing, the same plain init fails as before,
+# still carrying the notice so the failure explains itself
+! exec kdbx init
+stderr 'kdbx init --here'
+stderr 'kdbx: init failed: Preflight'
+
+# with no pointer anywhere above, plain init bootstraps in place: that path
+# could only ever fail before, so nothing existing changes meaning
+mkdir $NOPOINTER/init_here_fresh
+cd $NOPOINTER/init_here_fresh
+exec kdbx init
+stderr 'created .keepassxc.json — review and commit'
+exists .keepassxc.json
+exists $WORK/kpxc/init_here_fresh/dev.kdbx
+
+# --mode composes with --here: the new project starts strict and blessed
+cd $WORK
+mkdir locked
+cd locked
+exec kdbx init --here --mode strict
+stderr 'policy: strict'
+stderr 'blessed policy'
+exists .keepassxc.json
+
+-- .keepassxc.json --
+{
+  "project": "demo",
+  "defaultEnv": "dev",
+  "envs": {
+    "dev": {}
+  }
+}

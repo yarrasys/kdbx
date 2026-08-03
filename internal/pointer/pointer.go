@@ -75,6 +75,28 @@ func Load(path string) (*Pointer, error) {
 	return &Pointer{Path: path, root: root}, nil
 }
 
+// Bootstrap writes a minimal pointer file into dir — project named after the
+// directory, `dev` and `prod` environments, `dev` active — and returns it
+// loaded (spec C1). It refuses to touch an existing pointer: bootstrap is for
+// starting a project, never for rewriting one.
+func Bootstrap(dir string) (*Pointer, error) {
+	path := filepath.Join(dir, Name)
+	if _, err := os.Stat(path); err == nil {
+		return nil, kdbxerr.Preflight("%s already exists here", Name)
+	}
+	root := ojson.New()
+	root.SetString("project", filepath.Base(paths.Resolve(dir)))
+	root.SetString("defaultEnv", "dev")
+	envs := root.EnsureObj("envs")
+	envs.EnsureObj("dev")
+	envs.EnsureObj("prod")
+	p := &Pointer{Path: path, root: root}
+	if err := p.Save(); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
 // Dir is the directory holding the pointer file (the project root).
 func (p *Pointer) Dir() string { return filepath.Dir(p.Path) }
 

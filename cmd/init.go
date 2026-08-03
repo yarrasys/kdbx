@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -14,34 +15,65 @@ import (
 func init() {
 	registrars = append(registrars, func(root *cobra.Command) {
 		var mode string
+		var here bool
 		cmd := &cobra.Command{
-			Use:   "init [--mode standard|strict]",
+			Use:   "init [--here] [--mode standard|strict]",
 			Short: "Create the vault and keyfile for an environment",
 			Args:  cobra.NoArgs,
 			RunE: func(c *cobra.Command, _ []string) error {
-				return runInit(c, mode)
+				return runInit(c, mode, here)
 			},
 		}
 		cmd.Flags().StringVar(&mode, "mode", "",
 			"policy mode for this env: standard (default) or strict")
+		cmd.Flags().BoolVar(&here, "here", false,
+			"start a new project in this directory, even inside another kdbx project")
 		root.AddCommand(cmd)
 	})
 }
 
-func runInit(c *cobra.Command, mode string) error {
+func runInit(c *cobra.Command, mode string, here bool) error {
 	switch mode {
 	case "", "standard", "strict":
 	default:
 		return kdbxerr.Preflight("init: unknown --mode %q (want standard or strict)", mode)
 	}
+	errOut := c.ErrOrStderr()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return kdbxerr.Wrap(err, "Runtime", 1, "getting working directory")
+	}
+
+	// Bootstrap a pointer when asked (--here), or when there is none anywhere
+	// above — that path could only ever fail before, so claiming it changes
+	// nothing that worked (spec C5). Discovery walking up to a *parent*
+	// project is legitimate (a cloned repo with a committed pointer), so that
+	// case keeps its meaning and instead announces itself below.
+	if here {
+		if _, err := pointer.Bootstrap(cwd); err != nil {
+			return err
+		}
+		fmt.Fprintf(errOut, "created %s — review and commit\n", pointer.Name)
+	} else if _, ferr := pointer.Find(cwd); ferr != nil {
+		if _, err := pointer.Bootstrap(cwd); err != nil {
+			return err
+		}
+		fmt.Fprintf(errOut, "created %s — review and commit\n", pointer.Name)
+	}
+
 	ctx, err := mustContext(c, true)
 	if err != nil {
 		return err
 	}
+	if !here && ctx.Pointer.Dir() != paths.Resolve(cwd) {
+		fmt.Fprintf(errOut,
+			"note: %s has no pointer of its own; this initializes env '%s' of project '%s' (%s).\n"+
+				"To start a separate project in this directory, run: kdbx init --here\n",
+			cwd, ctx.Env, ctx.Pointer.Project(), ctx.Pointer.Dir())
+	}
 	if err := vault.Create(ctx.Vault, ctx.KeyFile); err != nil {
 		return err
 	}
-	errOut := c.ErrOrStderr()
 
 	// --mode is chosen at the one moment the human is definitely the one
 	// typing (spec N6). It is recorded in the pointer, and for strict the

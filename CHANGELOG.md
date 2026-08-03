@@ -8,6 +8,17 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+### Added
+
+- **`kdbx init` can start a project now.** `kdbx init --here` writes a minimal
+  `.keepassxc.json` in the current directory (project named after it, `dev`/`prod`
+  environments, `dev` active) and creates the vault in one step; plain `kdbx init` does the
+  same when there is no pointer anywhere above, a path that could previously only fail.
+  Inside another project's tree, plain `init` keeps targeting that project (the
+  cloned-repo case) but now prints a note naming it and pointing at `--here`, so the
+  walk-up trap explains itself instead of dying with a bare `Preflight`. This bit three
+  real projects in two weeks; the tool was the right place to fix it.
+
 ## [0.2.1] - 2026-08-01
 
 Release-engineering only; the binary is identical to 0.2.0 in behavior. Cut so the
