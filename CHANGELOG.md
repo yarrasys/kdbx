@@ -8,6 +8,8 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-03
+
 ### Changed
 
 - **Error lines explain themselves now.** The single stderr failure line carries kdbx's own
@@ -309,7 +311,8 @@ which is now the frozen reference implementation.
   surfaced some open failures as the generic exit 1. Go implements the documented code.
   Scripts that branched on exit 1 for a missing or unreadable key file must branch on 3.
 
-[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.3.0...main
+[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.3.1...main
+[0.3.1]: https://github.com/yarrasys/kdbx/releases/tag/v0.3.1
 [0.3.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.3.0
 [0.2.1]: https://github.com/yarrasys/kdbx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.2.0
