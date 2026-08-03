@@ -8,6 +8,15 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-03
+
+`kdbx init` learns to start a project. Until now it could only create vaults for a project
+that already had a pointer file, and in a directory without one it silently bound to a
+parent project and failed with a bare `Preflight`; the workaround was hand-writing
+`.keepassxc.json`. That trap hit three real projects in two weeks. Minor bump: plain
+`init` changes behavior on two paths (bootstrap where nothing existed, confirmation
+where a parent pointer would be used).
+
 ### Added
 
 - **`kdbx init` can start a project now.** `kdbx init --here` writes a minimal
@@ -288,7 +297,8 @@ which is now the frozen reference implementation.
   surfaced some open failures as the generic exit 1. Go implements the documented code.
   Scripts that branched on exit 1 for a missing or unreadable key file must branch on 3.
 
-[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.2.1...main
+[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.3.0...main
+[0.3.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.3.0
 [0.2.1]: https://github.com/yarrasys/kdbx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.2.0
 [0.1.3]: https://github.com/yarrasys/kdbx/releases/tag/v0.1.3
