@@ -170,10 +170,16 @@ harness asserts documented codes, not incidental Python behavior.
 
 ### C7. Error scrubbing & debug
 
-Failures never print secret values or tracebacks: one stderr line
-`kdbx: <op> failed: <ErrorKind>` (Go defines a stable kind-name set; parity maps Python
-exception class names → kinds) and the mapped exit code. `KDBX_DEBUG=1` additionally prints
-the full error/stack to stderr.
+Failures never print secret values or tracebacks: one stderr line and the mapped exit
+code. For kdbx's own `*kdbxerr.Error` the line is
+`kdbx: <op> failed: <ErrorKind>: <message>` — the message is authored under golden rule 2
+(no secret value ever enters an error string), so showing it is safe, and it is the
+difference between `init failed: Preflight` and an error that explains itself. A wrapped
+foreign error's text is not ours and could carry anything: it is never shown, and a bare
+non-kdbx error reports its kind only (`kdbx: <op> failed: Runtime`). `KDBX_DEBUG=1`
+additionally prints the full error chain and stack to stderr, opt-in.
+(Amended 2026-08-03: previously the line was kind-only; the stable kind-name set and exit
+codes are unchanged, so scripts matching on kinds keep working — the line gained a suffix.)
 
 ### C8. File permissions & secret hygiene
 

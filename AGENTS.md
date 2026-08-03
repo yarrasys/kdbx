@@ -61,8 +61,11 @@ binds the code and whoever writes it:
 - Secret intake is stdin, `--from-env`, or an interactive no-echo prompt. **Never argv.**
 - A secret value must never reach stdout without `--reveal`/`--clip`, never reach stderr,
   never reach a log line, an error string, a JSON envelope, or a test failure message.
-- Errors are scrubbed by construction: one stderr line, `kdbx: <op> failed: <Kind>`, no
-  stack, no payload. `KDBX_DEBUG=1` is the only escape hatch, and it is opt-in.
+- Errors are scrubbed by construction: one stderr line,
+  `kdbx: <op> failed: <Kind>: <our message>`, no stack, no foreign error text, no payload.
+  Every message you write into a `kdbxerr` constructor WILL be shown to the user, so it
+  must never interpolate a secret value — paths, env names, var names, entry paths only.
+  `KDBX_DEBUG=1` is the only escape hatch for the wrapped error, and it is opt-in.
 - Tests build throwaway vaults in `t.TempDir()` with fake values. **Never** commit a
   `.kdbx`, `.keyx`, `.key` or `.env` file — `.gitignore` blocks them, don't work around it.
 - If you are an agent: you may run `run`, `get` (masked), `list`, `check`, `envs`, `init`.

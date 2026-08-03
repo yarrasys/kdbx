@@ -206,14 +206,17 @@ pointer file is an error (exit 2).
 | `6` | the vault changed underneath a write; re-run |
 | `7` | preflight rejection (e.g. an invalid `--var` name, or `--json --reveal`) |
 
-Failures print exactly one stderr line and never a stack trace or a secret:
+Failures print exactly one stderr line and never a stack trace or a secret. The line
+carries the stable kind plus kdbx's own message, which is written so that no secret value
+can ever appear in it:
 
 ```console
 $ kdbx get api/nope
-kdbx: get failed: NotFound
+kdbx: get failed: NotFound: entry not found: api/nope
 ```
 
-Set `KDBX_DEBUG=1` to additionally get the underlying error and stack on stderr.
+The text of an underlying third-party error is never shown, since it is not under that
+rule. Set `KDBX_DEBUG=1` to additionally get the full error chain and stack on stderr.
 
 Environment variables kdbx reads: `KDBX_ENV`, `KEEPASSXC_DIR`, `XDG_CONFIG_HOME`,
 `LOCALAPPDATA`, `KDBX_DEBUG`.

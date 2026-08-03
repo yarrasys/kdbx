@@ -8,6 +8,18 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+### Changed
+
+- **Error lines explain themselves now.** The single stderr failure line carries kdbx's own
+  message after the stable kind: `kdbx: init failed: Preflight: .keepassxc.json already
+  exists here` instead of a bare `Preflight`. Safe by construction: kdbx's error messages
+  are authored under the no-secret-in-error-strings rule (paths, env names, var names and
+  entry paths only, audited across every constructor call), while the text of a wrapped
+  third-party error is never shown and stays behind `KDBX_DEBUG=1`. Kinds and exit codes
+  are unchanged, so scripts matching on them keep working; the line gained a suffix.
+  Prompted by two back-to-back bare `Preflight`s on healthy state that both needed a human
+  to decode.
+
 ## [0.3.0] - 2026-08-03
 
 `kdbx init` learns to start a project. Until now it could only create vaults for a project

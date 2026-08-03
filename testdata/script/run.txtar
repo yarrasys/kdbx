@@ -39,7 +39,7 @@ stderr 'kdbx: run failed: NotFound'
 # an unresolvable mapping is drift (exit 5)
 exec kdbx delete api/openai --purge --yes
 ! exec kdbx run -- printenv-shim OPENAI_API_KEY
-stderr 'kdbx: run failed: Drift'
+stderr 'kdbx: run failed: Drift: unresolved var OPENAI_API_KEY -> api/openai'
 
 # --allow-missing lets the child run without the var
 exec kdbx run --allow-missing -- printenv-shim OPENAI_API_KEY
