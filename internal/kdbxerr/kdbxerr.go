@@ -99,14 +99,24 @@ func KindOf(err error) string {
 	return "Runtime"
 }
 
-// Report writes the single scrubbed failure line for op, plus full detail when
-// KDBX_DEBUG is set.
+// Report writes the single failure line for op: the stable kind plus kdbx's
+// own message. Our messages are authored under golden rule 2 — no secret
+// value ever enters an error string — so showing them is safe, and it is the
+// difference between `init failed: Preflight` and an error that explains
+// itself. A wrapped foreign error's text is NOT ours and could carry
+// anything, so it stays hidden (KDBX_DEBUG reveals everything, opt-in), and a
+// bare non-kdbx error reports its kind only.
 func Report(w io.Writer, op string, err error) {
 	if err == nil {
 		return
 	}
 	if os.Getenv("KDBX_DEBUG") != "" {
 		fmt.Fprintf(w, "kdbx: %s failed: %v\n%s", op, err, debug.Stack())
+		return
+	}
+	var e *Error
+	if errors.As(err, &e) {
+		fmt.Fprintf(w, "kdbx: %s failed: %s: %s\n", op, e.Kind, e.Msg)
 		return
 	}
 	fmt.Fprintf(w, "kdbx: %s failed: %s\n", op, KindOf(err))

@@ -15,9 +15,14 @@ exec kdbx envs
 stdout '\* dev'
 stdout 'prod'
 
-# a second --here in the same directory refuses: already a project
+# a second --here in the same directory refuses, and the error line itself
+# says why (spec C7: kdbx's own messages are shown)
 ! exec kdbx init --here
-stderr 'kdbx: init failed: Preflight'
+stderr 'kdbx: init failed: Preflight: .keepassxc.json already exists here'
+
+# a plain rerun on an initialized env names the vault it refuses to touch
+! exec kdbx init
+stderr 'kdbx: init failed: Preflight: refusing to overwrite an existing vault'
 
 # plain init from a nested dir binds to the discovered parent project (the
 # cloned-monorepo case). That is ambiguous enough to require confirmation:

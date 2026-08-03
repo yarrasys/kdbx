@@ -57,11 +57,11 @@ func TestReportScrubsDetailWithoutDebug(t *testing.T) {
 	var buf bytes.Buffer
 	Report(&buf, "get", Wrap(errors.New("SUPER-SECRET-VALUE"), "NotFound", 2, "entry missing"))
 	got := buf.String()
-	if got != "kdbx: get failed: NotFound\n" {
-		t.Fatalf("got %q, want the single scrubbed line", got)
+	if got != "kdbx: get failed: NotFound: entry missing\n" {
+		t.Fatalf("got %q, want kind plus kdbx's own message", got)
 	}
 	if strings.Contains(got, "SUPER-SECRET") {
-		t.Fatal("scrubbed output leaked error detail")
+		t.Fatal("scrubbed output leaked wrapped error detail")
 	}
 }
 
@@ -71,5 +71,34 @@ func TestReportIncludesDetailWithDebug(t *testing.T) {
 	Report(&buf, "get", fmt.Errorf("detailed context"))
 	if !strings.Contains(buf.String(), "detailed context") {
 		t.Fatalf("KDBX_DEBUG should reveal detail, got %q", buf.String())
+	}
+}
+
+func TestReportShowsOwnMessages(t *testing.T) {
+	// kdbx's own messages are authored under golden rule 2 (no value ever
+	// enters an error string), so showing them is safe and ends the era of
+	// the bare, cryptic kind. The wrapped foreign error stays hidden: its
+	// text is not ours and could carry anything.
+	var b strings.Builder
+	Report(&b, "init", Preflight(".keepassxc.json already exists here"))
+	if got, want := b.String(), "kdbx: init failed: Preflight: .keepassxc.json already exists here\n"; got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+
+	b.Reset()
+	Report(&b, "run", Wrap(errors.New("SECRET-ADJACENT LIBRARY TEXT"), "Locked", 3, "opening the vault"))
+	out := b.String()
+	if !strings.Contains(out, "opening the vault") {
+		t.Fatalf("our own wrap message missing: %q", out)
+	}
+	if strings.Contains(out, "SECRET-ADJACENT") {
+		t.Fatalf("wrapped foreign error text leaked: %q", out)
+	}
+
+	// A bare error has no authored message to trust: kind only, as before.
+	b.Reset()
+	Report(&b, "run", errors.New("who knows what this contains"))
+	if got, want := b.String(), "kdbx: run failed: Runtime\n"; got != want {
+		t.Fatalf("bare error: got %q, want %q", got, want)
 	}
 }

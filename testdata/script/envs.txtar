@@ -24,7 +24,7 @@ stdout '"envs":\[\{"name":"dev","active":true\},\{"name":"prod","active":false\}
 # at the $WORK root, which discovery would find by walking up.
 cd $NOPOINTER
 ! exec kdbx envs
-stderr '^kdbx: envs failed: NotFound$'
+stderr '^kdbx: envs failed: NotFound: no .keepassxc.json found \(run from inside a configured repo\)$'
 
 # the reason is scrubbed out of the default report (spec C7) and only surfaces
 # under $KDBX_DEBUG
