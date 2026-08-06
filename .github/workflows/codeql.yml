@@ -28,7 +28,7 @@ jobs:
           # security-and-quality is broader than the default security-extended
           # and picks up correctness patterns golangci-lint does not.
           queries: security-and-quality
-      - uses: github/codeql-action/autobuild@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+      - uses: github/codeql-action/autobuild@d1ba80a13dd99fba24a470575428917156a28b43 # v4.37.5
       - uses: github/codeql-action/analyze@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
         with:
           category: "/language:go"
