@@ -8,6 +8,11 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+### Changed
+
+- CodeQL action updates are now grouped so its state-sharing workflow steps cannot run
+  incompatible versions.
+
 ## [0.3.1] - 2026-08-03
 
 ### Changed
