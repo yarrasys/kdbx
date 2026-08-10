@@ -17,8 +17,10 @@ updates:
         exclude-patterns: ["github.com/tobischo/gokeepasslib/v3"]
         update-types: [minor, patch]
 
-  # GitHub Actions. Left ungrouped by design — a major bump here can change the
-  # release pipeline's observable output (see the cosign pin in release.yml), and
+  # GitHub Actions stay ungrouped except for CodeQL. Its init, autobuild and
+  # analyze steps share runtime state and must run the same action version.
+  # Other actions remain separate because a major bump can change the release
+  # pipeline's observable output (see the cosign pin in release.yml), and
   # release.yml is never exercised by CI, so each one wants reading on its own.
   #
   # Every action is pinned to a commit SHA with the version in a trailing comment,
@@ -31,3 +33,6 @@ updates:
       interval: weekly
     commit-message:
       prefix: ci
+    groups:
+      codeql:
+        patterns: ["github/codeql-action/*"]
