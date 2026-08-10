@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/gofrs/flock v0.13.0
 	github.com/modelcontextprotocol/go-sdk v1.7.0
-	github.com/rogpeppe/go-internal v1.15.0
+	github.com/rogpeppe/go-internal v1.16.0
 	github.com/spf13/cobra v1.10.2
 	github.com/tobischo/gokeepasslib/v3 v3.7.0
 	golang.org/x/term v0.45.0
