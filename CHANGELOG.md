@@ -12,6 +12,8 @@ Versions are cut from a `v*` tag.
 
 - CodeQL action updates are now grouped so its state-sharing workflow steps cannot run
   incompatible versions.
+- Bumped the Go toolchain to `go1.25.13` to resolve five standard-library vulnerabilities
+  (GO-2026-6218, GO-2026-6090, GO-2026-6088, GO-2026-5972, GO-2026-5026).
 
 ## [0.3.1] - 2026-08-03
 
