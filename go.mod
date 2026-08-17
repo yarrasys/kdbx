@@ -2,6 +2,8 @@ module github.com/yarrasys/kdbx
 
 go 1.25.0
 
+toolchain go1.25.13
+
 require (
 	github.com/gofrs/flock v0.13.0
 	github.com/modelcontextprotocol/go-sdk v1.7.0
