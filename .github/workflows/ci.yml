@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.25.x"
+          go-version: "1.26.x"
       - run: go build ./...
       - run: go test ./... -race
       - run: go vet ./...
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.25.x"
+          go-version: "1.26.x"
       # golangci-lint-action v8+ requires golangci-lint >= v2.1.0. The pinned
       # version is deliberate: it must match what contributors run locally
       # (AGENTS.md rule 5), so bump it here and in your toolchain together.

@@ -32,16 +32,16 @@ curl -LsSf https://raw.githubusercontent.com/yarrasys/kdbx/main/install.sh | sh
 
 ```sh
 brew install yarrasys/tap/kdbx                    # Homebrew
-go install github.com/yarrasys/kdbx@latest        # from source, needs Go 1.25+
+go install github.com/yarrasys/kdbx@latest        # from source, needs Go 1.26+
 docker run --rm ghcr.io/yarrasys/kdbx:latest --version   # container (FROM scratch)
 ```
 
 Windows: download the `_windows_` archive from the
 [releases page](https://github.com/yarrasys/kdbx/releases) and put `kdbx.exe` on your PATH.
 
-Building from source needs **Go 1.25 or newer** (the KDBX engine and `golang.org/x/term`
-both declare a 1.25 floor). Release binaries are static and impose no toolchain
-requirement on users.
+Building from source needs **Go 1.26 or newer**. Go 1.25 left support when Go 1.27 shipped,
+and current `golang.org/x/term` releases declare a 1.26 floor. Release binaries are static
+and impose no toolchain requirement on users.
 
 Shell completions:
 

@@ -13,6 +13,15 @@ Versions are cut from a `v*` tag.
 - CodeQL action updates are now grouped so its state-sharing workflow steps cannot run
   incompatible versions.
 
+### Security
+
+- **Built, tested, scanned and released on Go 1.26.** Go 1.25 left support when Go 1.27
+  shipped, so the `1.25.x` toolchain every workflow pinned had stopped receiving
+  standard-library security fixes, and `govulncheck` v1.9.0 refused to run on it at all.
+  The next release picks up the standard-library fixes that landed in the 1.26 line.
+  Building from source now needs Go 1.26 or newer; release binaries are static, so nothing
+  changes for anyone who installs them.
+
 ## [0.3.1] - 2026-08-03
 
 ### Changed

@@ -17,19 +17,24 @@ is now the frozen reference implementation.
 ## Current status — read this first
 
 **Released and consumed.** The repo is public at <https://github.com/yarrasys/kdbx>, CI is
-green on Linux, macOS and Windows, and the current release is **v0.1.2**. As of 2026-07-30:
+green on Linux, macOS and Windows, and the current release is **v0.3.1**. As of 2026-10-14:
 
-- 19 packages, full suite green under `-race`, cross-compiles to darwin/linux/windows ×
-  amd64/arm64. 8 CLI-contract scenarios pass.
-- 15 commands: `init set get list delete mv run export import check envs rekey guard mcp
-  completion`. `install-launcher` was removed — the binary is its own launcher.
+- 23 packages, full suite green under `-race`, cross-compiles to darwin/linux/windows ×
+  amd64/arm64. 11 CLI-contract scenarios pass.
+- 16 commands: `init set get list delete mv run export import check envs rekey guard policy
+  mcp completion`. `install-launcher` was removed — the binary is its own launcher.
 - Vaults are standard KDBX4 (Argon2, key-file-only), so `keepassxc-cli` and the KeePassXC
   desktop app read Go-written vaults directly. The Python↔Go parity harness that verified the
   original port has been retired now that the Python reference is no longer a consumer.
 - `golangci-lint` v2 runs clean locally and in CI. `main` is protected: the `lint` and
   three-OS `test` checks are required (admins may still push directly).
+- Everything builds, tests, scans and releases on Go **1.26.x**. Go 1.25 left support when Go
+  1.27 shipped, and the weekly `govulncheck` run was red for five weeks before anyone noticed,
+  because `govulncheck@latest` only runs on a supported Go. The pin lives in six workflow files
+  and in the `go` directive of `go.mod`; move all seven together when Go 1.28 retires 1.26
+  (expected February 2027).
 - **Every install route is live**: the curl installer, `go install`, `brew install
-  yarrasys/tap/kdbx` (v0.1.1) and `ghcr.io/yarrasys/kdbx` (v0.1.2). Releases ship six
+  yarrasys/tap/kdbx` (v0.3.1) and `ghcr.io/yarrasys/kdbx` (v0.3.1). Releases ship six
   archives plus `SHA256SUMS` and a keyless cosign signature — see [SECURITY.md](SECURITY.md).
 - **The consuming change has landed**: `yarrasys/extensions` merged the skill-and-plugin
   switch to the binary in PR #36, freezing its Python implementation.
@@ -43,7 +48,7 @@ green on Linux, macOS and Windows, and the current release is **v0.1.2**. As of 
 **Nothing is outstanding.** Every item that once sat here — the git remote, the release tag, the
 consuming integration, the unpublished spec — is closed. Ordinary maintenance from here.
 
-A dev build is installed at `~/.local/bin/kdbx` (`0.1.2-dev`), replacing the old Python
+A dev build is installed at `~/.local/bin/kdbx` (`0.3.1`), replacing the old Python
 `install-launcher` shim, which has been deleted.
 
 ## Golden rules
@@ -156,7 +161,9 @@ goreleaser build --snapshot --clean --single-target
 sh -n install.sh
 ```
 
-Go 1.25 or newer is required to build. Dependencies stay permissive — MIT, BSD or
+Go 1.26 or newer is required to build, and the six workflows pin the same line
+(`go-version: "1.26.x"`); move the `go` directive and the pins together when a Go release
+line leaves support. Dependencies stay permissive: MIT, BSD or
 Apache-2.0 only, no copyleft (see [NOTICE](NOTICE)). Adding a dependency means updating
 NOTICE in the same change.
 
