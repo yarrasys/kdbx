@@ -162,8 +162,9 @@ sh -n install.sh
 ```
 
 Go 1.26 or newer is required to build, and the six workflows pin the same line
-(`go-version: "1.26.x"`); move the `go` directive and the pins together when a Go release
-line leaves support. Dependencies stay permissive: MIT, BSD or
+(`go-version: "1.26.x"` with `check-latest: true`, so the x tracks go.dev rather than the
+runner's cache); move the `go` directive and the pins together when a Go release line leaves
+support. Dependencies stay permissive: MIT, BSD or
 Apache-2.0 only, no copyleft (see [NOTICE](NOTICE)). Adding a dependency means updating
 NOTICE in the same change.
 

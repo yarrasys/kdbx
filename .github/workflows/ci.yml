@@ -20,6 +20,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.26.x"
+          check-latest: true
       - run: go build ./...
       - run: go test ./... -race
       - run: go vet ./...
@@ -34,6 +35,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.26.x"
+          check-latest: true
       # golangci-lint-action v8+ requires golangci-lint >= v2.1.0. The pinned
       # version is deliberate: it must match what contributors run locally
       # (AGENTS.md rule 5), so bump it here and in your toolchain together.
