@@ -18,7 +18,7 @@ PR will save you a review round.
 
 ## Setup
 
-You need **Go 1.25 or newer** and, to match CI, **golangci-lint v2.12.2**:
+You need **Go 1.26 or newer** and, to match CI, **golangci-lint v2.12.2**:
 
 ```sh
 git clone https://github.com/yarrasys/kdbx && cd kdbx
