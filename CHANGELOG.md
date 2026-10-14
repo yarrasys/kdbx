@@ -8,6 +8,13 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+### Security
+
+- Bumped the indirect `golang.org/x/crypto` dependency from v0.54.0 to v0.58.0 so the three
+  fixable OSV advisories Scorecard counted against it (GO-2026-6303, GO-2026-6354, GO-2026-6355)
+  go away. kdbx never called the affected code; this changes the scanner's view, not the binary's
+  behaviour. GO-2026-5932 (unmaintained `openpgp`) remains, has no fix, and is not imported.
+
 ## [0.3.2] - 2026-10-14
 
 ### Changed
