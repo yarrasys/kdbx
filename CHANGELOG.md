@@ -8,6 +8,8 @@ Versions are cut from a `v*` tag.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-14
+
 ### Changed
 
 - CodeQL action updates are now grouped so its state-sharing workflow steps cannot run
@@ -326,7 +328,8 @@ which is now the frozen reference implementation.
   surfaced some open failures as the generic exit 1. Go implements the documented code.
   Scripts that branched on exit 1 for a missing or unreadable key file must branch on 3.
 
-[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.3.1...main
+[Unreleased]: https://github.com/yarrasys/kdbx/compare/v0.3.2...main
+[0.3.2]: https://github.com/yarrasys/kdbx/releases/tag/v0.3.2
 [0.3.1]: https://github.com/yarrasys/kdbx/releases/tag/v0.3.1
 [0.3.0]: https://github.com/yarrasys/kdbx/releases/tag/v0.3.0
 [0.2.1]: https://github.com/yarrasys/kdbx/releases/tag/v0.2.1

@@ -17,7 +17,7 @@ is now the frozen reference implementation.
 ## Current status — read this first
 
 **Released and consumed.** The repo is public at <https://github.com/yarrasys/kdbx>, CI is
-green on Linux, macOS and Windows, and the current release is **v0.3.1**. As of 2026-10-14:
+green on Linux, macOS and Windows, and the current release is **v0.3.2**. As of 2026-10-14:
 
 - 23 packages, full suite green under `-race`, cross-compiles to darwin/linux/windows ×
   amd64/arm64. 11 CLI-contract scenarios pass.
@@ -34,7 +34,7 @@ green on Linux, macOS and Windows, and the current release is **v0.3.1**. As of 
   and in the `go` directive of `go.mod`; move all seven together when Go 1.28 retires 1.26
   (expected February 2027).
 - **Every install route is live**: the curl installer, `go install`, `brew install
-  yarrasys/tap/kdbx` (v0.3.1) and `ghcr.io/yarrasys/kdbx` (v0.3.1). Releases ship six
+  yarrasys/tap/kdbx` (v0.3.2) and `ghcr.io/yarrasys/kdbx` (v0.3.2). Releases ship six
   archives plus `SHA256SUMS` and a keyless cosign signature — see [SECURITY.md](SECURITY.md).
 - **The consuming change has landed**: `yarrasys/extensions` merged the skill-and-plugin
   switch to the binary in PR #36, freezing its Python implementation.
@@ -48,7 +48,7 @@ green on Linux, macOS and Windows, and the current release is **v0.3.1**. As of 
 **Nothing is outstanding.** Every item that once sat here — the git remote, the release tag, the
 consuming integration, the unpublished spec — is closed. Ordinary maintenance from here.
 
-A dev build is installed at `~/.local/bin/kdbx` (`0.3.1`), replacing the old Python
+The release binary is installed at `~/.local/bin/kdbx` (`0.3.2`), replacing the old Python
 `install-launcher` shim, which has been deleted.
 
 ## Golden rules
